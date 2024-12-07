@@ -82,15 +82,36 @@ class Dependencies(metaclass=Singleton):
         settings: Union["Settings", None] = None,
         db_engine: Engine | None = None,
         session_maker: sessionmaker[Session] | None = None,
+        settings_partial: Union["Settings", None] = None,
     ) -> Generator[None, None, None]:
         """Override dependency functions for testing."""
         # Backup current state and methods
         orig_state = self._state
-        self._state = DependencyState(
-            settings_override=settings,
-            engine_override=db_engine,
-            session_maker_override=session_maker,
+
+        if settings_partial is not None:
+            if settings is not None:
+                # heyo maybe an @override 🤷
+                raise ValueError("settings and settings_partial cannot both be set")
+
+            if orig_state.settings_override is not None:
+                existing_kwargs = orig_state.settings_override.model_dump()
+            else:
+                existing_kwargs = {}
+            new_kwargs = settings_partial.model_dump(exclude_unset=True)
+            merged_kwargs = {**existing_kwargs, **new_kwargs}
+            settings = Settings(**merged_kwargs)
+
+        # Carry across the overrides, typical use for this is multiple nesting
+        # of override contexts managers.
+        new_state = DependencyState(
+            settings_override=orig_state.settings_override,
+            engine_override=orig_state.engine_override,
+            session_maker_override=orig_state.session_maker_override,
         )
+        new_state.settings_override = settings
+        new_state.engine_override = db_engine
+        new_state.session_maker_override = session_maker
+        self._state = new_state
 
         try:
             yield

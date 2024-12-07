@@ -1,7 +1,7 @@
 import enum
 from collections.abc import Generator
 from contextlib import contextmanager
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any
 
 import sqlalchemy as sa
@@ -115,7 +115,8 @@ class TaskManager:
                         Task.state == TaskState.DOING,
                         sa.or_(
                             Task.last_picked_up_at == None,  # noqa: E711
-                            Task.last_picked_up_at < datetime.now(UTC) - timedelta(minutes=5),
+                            Task.last_picked_up_at
+                            < datetime.now(UTC) - deps.settings().task_queue_visibility_timeout,
                         ),
                     ),
                 ),

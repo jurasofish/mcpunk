@@ -15,6 +15,7 @@ from pydantic import (
 from pydantic_core import to_jsonable_python
 
 from mcpunk import db
+from mcpunk.dependencies import deps
 from mcpunk.file_breakdown import (
     File,
 )
@@ -122,7 +123,9 @@ class MCPToolOutput(BaseModel):
     # But that means more token usage I guess.
     # an int will do what you expect. None for compact. "default" will use
     # Whatever is set as the default on `MCPTools`
-    indent: int | None | Literal["default"] = "default"
+    indent: int | Literal["no_indent"] = Field(
+        default_factory=lambda: deps.settings().default_response_indent,
+    )
 
     default_response: str = "No response provided. This is not an error."
 
@@ -131,19 +134,14 @@ class MCPToolOutput(BaseModel):
     # are not counted.
     max_chars: int = 20_000
 
-    def render(
-        self,
-        *,
-        default_indent: int | None = None,
-    ) -> ToolResponse:
-        if self.indent == "default":
-            indent = default_indent
-        elif self.indent is None:
+    def render(self) -> ToolResponse:
+        indent: int | None
+        if self.indent == "no_indent":
             indent = None
         else:
             assert isinstance(self.indent, int)
             indent = self.indent
-        assert isinstance(indent, int) or indent is None
+        assert indent is None or isinstance(indent, int)
 
         out: list[ToolResponseSingleItem] = []
         if self.is_error:
@@ -180,8 +178,11 @@ class MCPToolOutput(BaseModel):
             logger.warning(msg)
             out = [mcp_types.TextContent(type="text", text=msg)]
 
-        # For debug, really. Should add an option to disable this.
-        out.insert(0, mcp_types.TextContent(type="text", text=f"Response is {total_chars} chars"))
+        if deps.settings().include_chars_in_response:
+            out.insert(
+                0,
+                mcp_types.TextContent(type="text", text=f"Response is {total_chars} chars"),
+            )
 
         final_out: ToolResponse
         if len(out) == 1:

@@ -34,8 +34,6 @@ logger = logging.getLogger(__name__)
 
 PROJECTS: dict[str, "ToolProject"] = {}
 
-# TODO: consider reworking this - it seems to be hit my multiprocessing 😬
-db.init_db()
 
 mcp = FastMCP("Code Analysis")
 

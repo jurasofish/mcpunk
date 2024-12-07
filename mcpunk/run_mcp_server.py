@@ -45,6 +45,7 @@ Can add to claude like
 # This file is a target for `fastmcp run .../run_mcp_server.py`
 import logging
 
+from mcpunk.db import init_db
 from mcpunk.dependencies import Dependencies
 from mcpunk.tools import mcp
 
@@ -75,7 +76,9 @@ logger.debug("Logging started")
 
 
 def main() -> None:
-    logger.debug("Running mcp server")
+    logger.info("Initializing database")
+    init_db()
+    logger.info("Starting mcp server")
     mcp.run()
 
 

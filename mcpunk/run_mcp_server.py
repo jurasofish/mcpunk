@@ -44,27 +44,29 @@ Can add to claude like
 
 # This file is a target for `fastmcp run .../run_mcp_server.py`
 import logging
-import pathlib
 
+from mcpunk.settings import get_settings
 from mcpunk.tools import mcp
+
+settings = get_settings()
 
 
 def _setup_logging() -> logging.Logger:
-    log_dir = pathlib.Path.home() / ".commit_summariser"
-    log_dir.mkdir(parents=True, exist_ok=True)
-    log_path = log_dir / "mcp_server.log"
-    _logger = logging.getLogger("commit_summariser")
-    _logger.setLevel(logging.DEBUG)
+    _logger = logging.getLogger("mcpunk")
+    _logger.setLevel(settings.log_level)
+    if settings.enable_log_file:
+        log_path = settings.log_file.expanduser().absolute()
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.FileHandler(log_path)
+        file_handler.setLevel(settings.log_level)
 
-    file_handler = logging.FileHandler(log_path)
-    file_handler.setLevel(logging.DEBUG)
-
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-    file_handler.setFormatter(formatter)
-    _logger.addHandler(file_handler)
+        file_handler.setFormatter(
+            logging.Formatter(
+                "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            ),
+        )
+        _logger.addHandler(file_handler)
 
     return _logger
 

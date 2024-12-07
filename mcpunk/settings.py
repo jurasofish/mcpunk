@@ -1,17 +1,21 @@
 from pathlib import Path
-from typing import Annotated
+from typing import Literal
 
-from pydantic import (
-    Field,
-)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    db_path: Annotated[Path, Field(description="SQLite database path")] = Path(
-        "~/.task_db.sqlite",
+    # SQLite database path
+    db_path: Path = Path(
+        "~/.mcpunk/db.sqlite",
     ).expanduser()
-    db_echo: Annotated[bool, Field(description="Enable SQLAlchemy query logging")] = True
+
+    # Enable SQLAlchemy query logging
+    db_echo: bool = True
+
+    enable_log_file: bool = True
+    log_file: Path = Path("~/.mcpunk/mcpunk.log").expanduser()
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "FATAL", "CRITICAL"] = "DEBUG"
 
     model_config = SettingsConfigDict(
         env_prefix="MCPUNK_",

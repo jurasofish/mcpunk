@@ -5,16 +5,15 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import sqlalchemy as sa
-from sqlalchemy import DateTime, Enum, String, TypeDecorator, create_engine
+from sqlalchemy import DateTime, Enum, String, TypeDecorator
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
     Session,
     mapped_column,
-    sessionmaker,
 )
 
-from mcpunk.settings import get_settings
+from mcpunk.dependencies import deps
 from mcpunk.unset import AnyUnset
 
 CURRENT_DB_VERSION = "1"
@@ -98,19 +97,6 @@ class DBVersion(Base):
     version = mapped_column(String(32))
 
 
-settings = get_settings()
-engine = create_engine(
-    f"sqlite:///{settings.db_path}?check_same_thread=true&timeout=10&uri=true",
-    echo=settings.db_echo,
-)
-make_session = sessionmaker(
-    autocommit=False,
-    expire_on_commit=True,
-    autoflush=False,
-    bind=engine,
-)
-
-
 class TaskManager:
     def __init__(self, session: Session) -> None:
         self.sess = session
@@ -160,15 +146,18 @@ class TaskManager:
 
 @contextmanager
 def get_task_manager() -> Generator[TaskManager, None, None]:
+    make_session = deps.session_maker()
     with make_session.begin() as sess:
         yield TaskManager(sess)
 
 
 def init_db() -> None:
+    settings = deps.settings()
+    make_session = deps.session_maker()
     if not settings.db_path.exists():
         settings.db_path.parent.mkdir(parents=True, exist_ok=True)
-        Base.metadata.create_all(engine)
         with make_session.begin() as sess:
+            Base.metadata.create_all(sess.get_bind())
             sess.add(DBVersion(version=CURRENT_DB_VERSION))
     with make_session.begin() as sess:
         for stmt in [

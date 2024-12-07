@@ -20,10 +20,3 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="MCPUNK_",
     )
-
-
-_settings = Settings()
-
-
-def get_settings() -> Settings:
-    return _settings

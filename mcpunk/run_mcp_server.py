@@ -45,13 +45,12 @@ Can add to claude like
 # This file is a target for `fastmcp run .../run_mcp_server.py`
 import logging
 
-from mcpunk.settings import get_settings
+from mcpunk.dependencies import Dependencies
 from mcpunk.tools import mcp
-
-settings = get_settings()
 
 
 def _setup_logging() -> logging.Logger:
+    settings = Dependencies().settings()
     _logger = logging.getLogger("mcpunk")
     _logger.setLevel(settings.log_level)
     if settings.enable_log_file:

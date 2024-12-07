@@ -8,7 +8,7 @@ MCPunk is built with the following in mind
 - **Human in the loop always** -
 - **Context must be carefully managed** - as context 
 
-**Core functionality:** your LLM can configure a project (e.g. a directory 
+**Core functionality** allows your LLM to configure a project (e.g. a directory 
 containing Python files). The files in this project are automatically "chunked". 
 Each chunk is e.g. a Python function or a markdown section.
 The LLM can then query the entire project for chunks with specific names or with

@@ -152,12 +152,8 @@ def get_task_manager() -> Generator[TaskManager, None, None]:
         yield TaskManager(sess)
 
 
-def init_db() -> None:
-    if not deps.settings().db_path.exists():
-        deps.settings().db_path.parent.mkdir(parents=True, exist_ok=True)
-        with deps.session_maker().begin() as sess:
-            Base.metadata.create_all(sess.get_bind())
-            sess.add(DBVersion(version=CURRENT_DB_VERSION))
+def _init_pragmas() -> None:
+    """Call me liberally why not."""
     with deps.session_maker().begin() as sess:
         for stmt in [
             "PRAGMA journal_mode = WAL;",
@@ -167,6 +163,23 @@ def init_db() -> None:
             "PRAGMA foreign_keys = ON;",
         ]:
             sess.execute(sa.text(stmt))
+
+
+def _init_totally_new_db() -> None:
+    db_path = deps.settings().db_path
+    assert not db_path.exists()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    _init_pragmas()
+    with deps.session_maker().begin() as sess:
+        Base.metadata.create_all(sess.get_bind())
+        sess.add(DBVersion(version=CURRENT_DB_VERSION))
+
+
+def init_db() -> None:
+    if not deps.settings().db_path.exists():
+        _init_totally_new_db()
+    _init_pragmas()
+    with deps.session_maker().begin() as sess:
         version = sess.scalars(sa.select(DBVersion.version)).one_or_none()
     if version != CURRENT_DB_VERSION:
         raise ValueError(

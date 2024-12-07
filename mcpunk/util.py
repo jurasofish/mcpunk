@@ -42,6 +42,7 @@ def log_inputs(func: Callable[P, R]) -> Callable[P, R]:
         resp = func(*args, **kwargs)
         lines = [
             "",
+            f"    resp={resp!r}",
             " " * 0 + ".\\" + " " * 120 + "/.",
             " " * 1 + ".\\" + " " * 118 + "/.",
             " " * 2 + ".\\" + "-" * 116 + "/.",
@@ -140,6 +141,7 @@ def create_file_tree(
         if parent["f"] == "...":
             parent["f"] = []
         parent["f"].append(file_path.name)
+        parent["f"] = sorted(parent["f"])
 
     # Round trip through JSON just to sort things thank you
     data_jsonable = to_jsonable_python(data)

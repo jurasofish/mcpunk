@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 import sqlalchemy as sa
 
 from mcpunk import db
@@ -42,3 +43,15 @@ def test_init_db_creates_new_db(tmp_path: Path) -> None:
             actual_tables = sorted(actual_tables)
             expected_tables = sorted([("db_version",), ("task",)])
             assert actual_tables == expected_tables
+
+
+def test_init_db_version_mismatch() -> None:
+    db.init_db()  # This will double check the version is okay right now
+
+    # Modify version to be different
+    with deps.session_maker().begin() as sess:
+        sess.execute(sa.delete(db.DBVersion))
+        sess.add(db.DBVersion(version=db.CURRENT_DB_VERSION + "abcdefsg"))
+
+    with pytest.raises(ValueError, match="Database version mismatch"):
+        db.init_db()

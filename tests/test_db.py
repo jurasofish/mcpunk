@@ -8,6 +8,11 @@ from mcpunk.settings import Settings
 
 
 def test_init_db_creates_new_db(tmp_path: Path) -> None:
+    # There's an auto-use fixture that uses tmp_path to set up a fresh db
+    # for each test, and already runs init. So we need to just fiddle the path
+    # to ensure we really do get a fresh db.
+    tmp_path = tmp_path / "make_it_fresher" / "even_fresher"
+
     settings = Settings(db_path=tmp_path / "test.db")
     assert not settings.db_path.absolute().exists()
     with deps.override(settings=settings):

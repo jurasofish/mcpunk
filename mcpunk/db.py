@@ -153,14 +153,12 @@ def get_task_manager() -> Generator[TaskManager, None, None]:
 
 
 def init_db() -> None:
-    settings = deps.settings()
-    make_session = deps.session_maker()
-    if not settings.db_path.exists():
-        settings.db_path.parent.mkdir(parents=True, exist_ok=True)
-        with make_session.begin() as sess:
+    if not deps.settings().db_path.exists():
+        deps.settings().db_path.parent.mkdir(parents=True, exist_ok=True)
+        with deps.session_maker().begin() as sess:
             Base.metadata.create_all(sess.get_bind())
             sess.add(DBVersion(version=CURRENT_DB_VERSION))
-    with make_session.begin() as sess:
+    with deps.session_maker().begin() as sess:
         for stmt in [
             "PRAGMA journal_mode = WAL;",
             "PRAGMA synchronous = NORMAL;",

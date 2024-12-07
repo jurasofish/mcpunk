@@ -109,38 +109,6 @@ class Callable(BaseModel):
             callables.append(callable_)
         return callables
 
-    def matches_name_filter(self, filter_: str | None | list[str]) -> bool:
-        """Return True if the callable's name matches the given filter.
-
-        str matches if the callable's name contains the string.
-        list[str] matches if the callable's name contains any of the strings in the list.
-        None matches all callables.
-        TODO: remove?
-        """
-        if filter_ is None:
-            return True
-        if isinstance(filter_, str):
-            return filter_ in str(self.name)
-        if isinstance(filter_, list):
-            return any(x in str(self.name) for x in filter_)
-        assert_never(filter_)
-
-    def matches_source_filter(self, filter_: str | None | list[str]) -> bool:
-        """Return True if the callable's source code matches the given filter.
-
-        str matches if the callable's source contains the string.
-        list[str] matches if the callable's source contains any of the strings in the list.
-        None matches all callables.
-        TODO: remove?
-        """
-        if filter_ is None:
-            return True
-        if isinstance(filter_, str):
-            return filter_ in str(self.code)
-        if isinstance(filter_, list):
-            return any(x in str(self.code) for x in filter_)
-        assert_never(filter_)
-
 
 def extract_imports(source_code: str) -> list[str]:
     """Extract all module-level import statements from source code.

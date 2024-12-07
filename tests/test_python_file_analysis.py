@@ -3,7 +3,7 @@ import textwrap
 import deepdiff
 import pytest
 
-from mcpunk.python_file_analysis import Callable
+from mcpunk.python_file_analysis import Callable, extract_imports
 
 # This makes pytest print nice diffs when asserts fail
 # within this function.
@@ -724,4 +724,48 @@ class DataClass:
     assert_callables_equal(actual, expected)
 
 
-# TODO: test imports
+def test_extract_imports_basic() -> None:
+    source = """\
+import os
+import sys as system
+import json, csv
+from pathlib import Path
+from typing import List, Optional as Opt
+from . import local_module
+from ..parent import something as other
+"""
+
+    result = extract_imports(source)
+    assert result == [
+        "import os",
+        "import sys as system",
+        "import json, csv",
+        "from pathlib import Path",
+        "from typing import List, Optional as Opt",
+        "from . import local_module",
+        "from ..parent import something as other",
+    ]
+
+
+def test_extract_mixed_scope_imports() -> None:
+    source = """
+import os  # module level
+
+def func1():
+    import sys  # inside function
+    print("hello")
+
+import json  # module level again
+
+class MyClass:
+    import csv  # inside class
+
+    def method(self):
+        from pathlib import Path  # inside method
+        return Path('.')
+
+from typing import List  # module level at end
+"""
+
+    result = extract_imports(source)
+    assert result == ["import os", "import json", "from typing import List"]

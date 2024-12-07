@@ -35,3 +35,10 @@ def test_init_db_creates_new_db(tmp_path: Path) -> None:
             # Verify version
             version = sess.scalars(sa.select(db.DBVersion.version)).one()
             assert version == db.CURRENT_DB_VERSION
+
+            actual_tables = sess.execute(
+                sa.text("SELECT name FROM sqlite_master WHERE type='table';"),
+            ).fetchall()
+            actual_tables = sorted(actual_tables)
+            expected_tables = sorted([("db_version",), ("task",)])
+            assert actual_tables == expected_tables

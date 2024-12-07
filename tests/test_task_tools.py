@@ -1,4 +1,5 @@
 import json
+from datetime import UTC, datetime, timedelta
 
 import mcp.types as mcp_types
 import pytest
@@ -6,6 +7,7 @@ import sqlalchemy as sa
 
 from mcpunk import db, tools
 from mcpunk.dependencies import deps
+from mcpunk.settings import Settings
 
 
 def test_add_tasks() -> None:
@@ -97,3 +99,36 @@ def _squash_resp(resp: tools.ToolResponse) -> str:
         return squashed
     else:
         raise NotImplementedError(f"Unexpected type: {type(resp)}")
+
+
+def test_get_task_visibility_timeout() -> None:
+    """Test that tasks become visible again after timeout."""
+    # We want to ensure it's a large number so that we don't fly past it and cause
+    # a flaky test.
+    settings = Settings(task_queue_visibility_timeout_seconds=10_000)
+
+    with deps.override(settings_partial=settings):
+        tools.add_tasks(task_actions=["task one"])
+
+        # Pick up task
+        task_info_raw = tools.get_task()
+        task_info_dict = json.loads(_squash_resp(task_info_raw))
+        task_id = task_info_dict["id"]
+
+        # Verify task unavailable immediately
+        no_task_info = tools.get_task()
+        assert _squash_resp(no_task_info) == "no tasks"
+
+        # Move task pickup time to before timeout
+        with deps.session_maker().begin() as sess:
+            task = sess.get_one(db.Task, task_id)
+            task.last_picked_up_at = (
+                datetime.now(UTC)
+                - deps.settings().task_queue_visibility_timeout
+                - timedelta(seconds=1)
+            )
+
+        # Task should be available again
+        task_info_raw = tools.get_task()
+        task_info_dict = json.loads(_squash_resp(task_info_raw))
+        assert task_info_dict["id"] == task_id  # Same task picked up

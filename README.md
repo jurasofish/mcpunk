@@ -139,11 +139,59 @@ TODO
 # Roadmap
 
 MCPunk is at a minimum usable state right now.
-Planned functionality
-- Better ability to chunk git diffs
-- Ability for users to provide custom code to perform chunking
+
+**Critical Planned functionality**
+- Ability for users to provide custom code to perform chunking (critical)
+- Add a bunch of prompts to help with using MCPunk
+- Repeat description in response - LLM has tendency to fetch tasks right after
+  adding them to add note to add_tasks response noting not to fetch them unless
+  explicitly instructed to do so.
+
+**High up on the roadmap**
+
 - Improved logging, likely into the db itself
 - Possibly stemming for search
+- Change the whole "project" concept to not need files to actually exist - this
+  leads to allowing "virtual" files inside the project.
+  - Consider changing files from having a path to having a URI, so coule be like
+    `file://...` / `http[s]://` / `gitdiff://` / etc arbitrary URIs
+- Integrate with web searching
+  - Flow like (1) LLM says "search for Caridina water parameters" (2) tool
+    does web search and grabs the 10 highest pages and converts to markdown and
+    chunks them and puts them in the virtual filesystem (3) LLM queries for chunks
+    etc like usual.
+- Chunking of git diffs. Currently, there's a tool to fetch an entire diff. This
+  might be very large. Instead, the tool could be changed to `add_diff_to_project`
+  and it puts files under the `gitdiff://` URI or under some fake path
+- Database tweaks
+  - Maybe migrations. More than likely just if db version has changed make a backup
+    copy of the old one and start from scratch.
+  - If db needs stay so simple, just switch to JSON file on disk. Multithread/process
+    considerations.
+- For small (say, <500 chars) files maybe just unconditionally put them as one
+  chunk, not much point breaking them up.
+- Switch up chunk fetching, like let's say 
+  - each chunk has a randomly generated id that's used to get its details 
+    (makes llm_known_chunks redundant 💩)
+  - Don't require filtering on chunk type when searching, just search for all
+    chunk types
+  - When listing chunks in a file, include chunk type, chunk id, numer of
+    characters in chunk content
+- Add a `__main__` chunk for Python, plus a chunk for "any not yet accounted for
+  module-level statements"
+- Caching of a project, so it doesn't need to re-parse all files every time you
+  restart MCP client
+- Handle changed files sensibly, so you don't need to restart MCP client
+  and re-add project on any file changes
+- Ability to edit files - why not? Can do it like aider where LLM produces a diff.
+
+**Just ideas**
+- Something like tree sitter could possibly be used for a more generic chunker
+- Better handling of large chunks
+  - Configurable Max response size for chunks
+  - Log warning for any chunk over max size when initialising project
+- Tracking of characters sent/received, ideally by chat.
+- State, logging, etc by chat
 
 
 # Development

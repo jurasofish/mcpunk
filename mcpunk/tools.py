@@ -58,7 +58,9 @@ class ToolProject(BaseModel):
     # These are the chunks that the LLM has been told about through tool
     # requests. If an LLM tries to get info about a chunk that isn't in here
     # it means it's just guessing - which is likes to do. So you might want to
-    # just say "hey buddy try asking about what chunks are available first"
+    # just say "hey buddy try asking about what chunks are available first".
+    # TODO: make this redundant, perhaps force chunks to be fetched by a random-ish
+    #       id which can only be known by listing chunks.
     llm_known_chunks: list[Chunk] = []
 
     @property

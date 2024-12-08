@@ -62,7 +62,7 @@ A chunk is a subsection of a file. For example,
 - All the imports from a Python file
 - The diff of one file out of a multi-file diff
 
-Chunks are created from a file by [cunkers](mcpunk/file_chunkers.py)
+Chunks are created from a file by [chunkers](mcpunk/file_chunkers.py)
 (currently only Python and Markdown but plans to add more builtin ones
 plus [customisable ones](#roadmap))
 
@@ -101,6 +101,8 @@ This demonstrates
 - Grab a diff between current branch and another
 - Putting tasks on a queue for other LLM chat sessions to perform
 - Running tasks from the queue
+
+.
 
 - **[user]** Hey pal can you please set up the ~/git/mcpunk repo and have a
   look at the current branch versus `scratch/1.5`

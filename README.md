@@ -109,7 +109,6 @@ Start a totally new chat
 - **[Claude]** discusses details
 - **[Claude]** marks task done with note:
 ```
-{
 Found potential issues with _branches_from_reflog function:
 1. Current implementation is brittle as it uses simple string splitting
 2. Could fail with branch names containing \"to \"
@@ -117,7 +116,6 @@ Found potential issues with _branches_from_reflog function:
 Recommend using regex pattern matching to properly parse reflog format
 
 follow_up_criticality: medium
-}
 ```
 
 

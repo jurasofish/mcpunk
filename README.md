@@ -70,7 +70,57 @@ it's a big "who cares 🤷")
 
 ### PR Review
 
-TODO
+- **[user]** Hey pal can you please set up the ~/git/mcpunk repo and have a 
+  look at the current branch versus `scratch/1.5`
+- **[Claude]** [fumbles trying to set up /home/claude/git/mcpunk but eventually gets ~/git/mcpunk]
+- **[Claude]** Call `diff_with_ref` for ref `scratch/1.5`
+- **[Claude]** I see you've made several changes, primarily adding a new test 
+  file `tests/test_git_analysis.py`...
+- **[user]** how does this fit into the rest of the codebase?
+- **[Claude]** Makes 5 tool calls for listing files by chunks, listing chunks,
+  fetching chunk details
+- **[Claude]** I see - the code parses git reflog output to track recently 
+  checked out branches. The main function get_recent_branches takes a repo path 
+  and returns the last N branches that were checked out, using _branches_from_reflog 
+  as a helper to parse the raw reflog output.
+- **[User]** If you were in a rush and had to direct someone to review this work, 
+  what would you direct them to look at? Please outline discrete pieces of work
+- **[Claude]** (tries to use the add task tool, but rejected by user)
+- **[Claude]** 
+  - The `split("to ")[-1]` in _branches_from_reflog looks fragile
+  - Test data only shows simple branch names, what about spaces/special chars?
+  - Is example_reflog representative of real git reflog output?
+  - Are we testing against actual git behavior?
+- **[User]** Can you please go ahead and add a single task for each of these items, 
+  using the task tool. Each task must be totally self contained with all relevant context, 
+  such that a new person could pick it up and know exactly what to do.  For example, 
+  it must specify to set up the project, get the diff, and look at a specific area 
+  with refrenc to the remainder of the codebase, then mark the task as done with 
+  a relevant outcome note
+- **[Claude]** (adds tasks)
+  - 1. Set up ~/git/mcpunk repo 2. Get diff between HEAD and scratch/1.5 3. Review _branches_from_reflog function in mcpunk/git_analysis.py, particularly the `split('to ')[-1]` logic 4. Check this against branch names containing spaces or special characters 5. If issues found, validate against git's reflog documentation
+  - 1. Set up ~/git/mcpunk repo 2. Get diff between HEAD and scratch/1.5 3. Compare example_reflog test data in tests/test_git_analysis.py against actual git reflog output from multiple repos 4. Verify it covers common reflog scenarios (merges, rebases, checkouts) 5. Document any missing patterns
+  - 1. Set up ~/git/mcpunk repo 2. Get diff between HEAD and scratch/1.5 3. Review get_recent_branches function in mcpunk/git_analysis.py 4. Verify there are integration tests that check the full function with a real git repo, not just the helper 5. If missing, document test gaps 
+- **[Claude]** (attempts to get a task but rejected by user)
+
+Start a totally new chat
+- **[User]** Hey buddy can you please grab a task and complete it
+- **[Claude]** grabs a task, sets up project, gets diff, digs around project
+- **[Claude]** discusses details
+- **[Claude]** marks task done with note:
+```
+{
+Found potential issues with _branches_from_reflog function:
+1. Current implementation is brittle as it uses simple string splitting
+2. Could fail with branch names containing \"to \"
+3. May break with non-standard reflog entries
+Recommend using regex pattern matching to properly parse reflog format
+
+follow_up_criticality: medium
+}
+```
+
+
 
 ### Split Work Into Tasks
 

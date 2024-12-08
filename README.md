@@ -27,9 +27,9 @@ All this with no SaaS, no pricing, nothing (well you need a claude SaaS sub).
 Just you and Claude Desktop, with all tools running on your local machine after
 one tiny snippet in `claude_desktop_config.json`.
 
-# Setup
+# Getting started
 
-Just put the following in your `claude_desktop_config.json`
+First, put the following in your `claude_desktop_config.json`
 
 ```json
 {
@@ -41,6 +41,12 @@ Just put the following in your `claude_desktop_config.json`
   }
 }
 ```
+
+Next, start claude desktop and you should see the tools available after a small delay
+![](assets/setup.png)
+
+Next, ask it to set up a project like "hey pal can you set up the ~/git/mcpunk project".
+Then start asking away, like "how is the tasks database schema structured?"
 
 # Key Concepts
 

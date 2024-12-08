@@ -5,9 +5,12 @@ with [Model Context Protocol](https://github.com/modelcontextprotocol).
 
 MCPunk is built with the following in mind
 
-- **Chat is king** -
-- **Human in the loop always** -
-- **Context must be carefully managed** - as context
+- **Context is King** - LLMs can be great but only if provided with appropriate
+  context: not too long, focused and relevant.
+- **Human in the Loop** - **You** can see exactly what data the LLM has considered
+  and how it found it, **You** can jump into chat and direct things wherever you want.
+- **Tools are Next** - LLMs have landed, and the vibe is that improvements are stagnating.
+  The next wave of LLM-sourced productivity will come from tools surgically leveraging LLMs.
 
 **Core functionality** allows your LLM to configure a project (e.g. a directory
 containing Python files). The files in this project are automatically "chunked".
@@ -20,7 +23,9 @@ of individual chunks.
 with PR reviews, and provides a task queue that LLMs can read and write, allowing
 you to split work across multiple chats to keep context manageable.
 
-All this with no SaaS, no pricing, nothing. Just you and Claude Desktop.
+All this with no SaaS, no pricing, nothing (well you need a claude SaaS sub).
+Just you and Claude Desktop, with all tools running on your local machine after
+one tiny snippet in `claude_desktop_config.json`.
 
 # Setup
 
@@ -41,11 +46,34 @@ Just put the following in your `claude_desktop_config.json`
 
 #### Roaming RAG
 
-TODO
+TODO discussion but for the moment see
+
+- https://arcturus-labs.com/blog/2024/11/21/roaming-rag--make-_the-model_-find-the-answers/
+- https://simonwillison.net/2024/Dec/6/roaming-rag/
 
 #### Chunks
 
-TODO
+TODO discuss a whole lot more.
+
+A chunk is a subsection of a file. For example,
+
+- A single python function
+- A markdown section
+- All the imports from a Python file
+- The diff of one file out of a multi-file diff
+
+Chunks are created from a file by [cunkers](mcpunk/file_chunkers.py)
+(currently only Python and Markdown but plans to add more builtin ones
+plus [customisable ones](#roadmap))
+
+When a project is set up in MCPunk, it goes through all files and applies
+the first matching chunker to it. The LLM can then use tools to (1) query for files
+containing chunks with specific text in them, (2) query all chunks in a specific
+file, and (3) fetch the full contents of a chunk.
+
+This basic foundation enables claude to effectively navigate relatively large
+codebases by starting with a broad search for relevant files and narrowing in
+on relevant areas.
 
 # Common Usage Patterns
 
@@ -151,10 +179,11 @@ MCPunk is at a minimum usable state right now.
 **Critical Planned functionality**
 
 - Ability for users to provide custom code to perform chunking (critical)
-- Add a bunch of prompts to help with using MCPunk
+- Add a bunch of prompts to help with using MCPunk. Without real "explain how to make
+  a pancake to an alien"-type prompts things do fall a little flat.
 - Repeat description in response - LLM has tendency to fetch tasks right after
   adding them to add note to add_tasks response noting not to fetch them unless
-  explicitly instructed to do so.
+  explicitly instructed to do so. etc etc.
 
 **High up on the roadmap**
 

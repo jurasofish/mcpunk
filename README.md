@@ -9,8 +9,8 @@ MCPunk is built with the following in mind
   context: not too long, focused and relevant.
 - **Human in the Loop** - **You** can see exactly what data the LLM has considered
   and how it found it, **You** can jump into chat and direct things wherever you want.
-- **Tools are Next** - LLMs have landed, and the vibe is that improvements are stagnating.
-  The next wave of LLM-sourced productivity will come from tools surgically leveraging LLMs.
+- **Tools are Next** - LLMs have landed. And the vibe is that improvements are stagnating.
+  The next wave of LLM-based productivity will come from the tools that use LLMs well.
 
 **Core functionality** allows your LLM to configure a project (e.g. a directory
 containing Python files). The files in this project are automatically "chunked".

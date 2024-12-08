@@ -29,7 +29,8 @@ one tiny snippet in `claude_desktop_config.json`.
 
 # Getting started
 
-First, put the following in your `claude_desktop_config.json`
+First, put the following in your `claude_desktop_config.json`.
+[Details about `claude_desktop_config.json` including location](https://glama.ai/blog/2024-11-25-model-context-protocol-quickstart#testing-mcp-using-claude-desktop)
 
 ```json
 {

@@ -33,6 +33,9 @@ license-files = []
 [tool.setuptools.dynamic]
 version = {attr = "mcpunk.__version__"}
 
+[tool.setuptools.packages.find]
+include = ["mcpunk*"]
+
 [project.optional-dependencies]
 dev = [
     "mypy>=1.13.0",

@@ -68,7 +68,12 @@ it's a big "who cares 🤷")
 - **[User]** Great job pal!
 
 
-### PR Review
+### PR Review Split Into Tasks
+
+This demonstrates 
+- Grab a diff between current branch and another
+- Putting tasks on a queue for other LLM chat sessions to perform
+- Running tasks from the queue
 
 - **[user]** Hey pal can you please set up the ~/git/mcpunk repo and have a 
   look at the current branch versus `scratch/1.5`
@@ -118,11 +123,6 @@ Recommend using regex pattern matching to properly parse reflog format
 follow_up_criticality: medium
 ```
 
-
-
-### Split Work Into Tasks
-
-TODO
 
 # Limitations
 

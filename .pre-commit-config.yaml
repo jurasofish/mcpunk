@@ -1,13 +1,12 @@
 fail_fast: true
 
 repos:
-
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: c4a0b883114b00d8d76b479c820ce7950211c99b  # frozen: v4.5.0
+    rev: c4a0b883114b00d8d76b479c820ce7950211c99b # frozen: v4.5.0
     hooks:
       - id: check-docstring-first
       - id: check-json
-        exclude: '^.vscode/'
+        exclude: "^.vscode/"
       - id: check-merge-conflict
       - id: check-toml
       - id: check-yaml
@@ -34,3 +33,8 @@ repos:
       - id: markdown-link-check
         # args: [-q, -c .markdown-link-check.json]
         files: ^(.*\.md)$
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.43.0
+    hooks:
+      - id: markdownlint-fix

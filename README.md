@@ -4,6 +4,7 @@ MCPunk provides tools for [Roaming RAG](https://arcturus-labs.com/blog/2024/11/2
 with [Model Context Protocol](https://github.com/modelcontextprotocol).
 
 MCPunk is built with the following in mind
+
 - **Chat is king** -
 - **Human in the loop always** -
 - **Context must be carefully managed** - as context
@@ -14,7 +15,6 @@ Each chunk is e.g. a Python function or a markdown section.
 The LLM can then query the entire project for chunks with specific names or with
 specific text in their contents. The LLM can then fetch the entire contents
 of individual chunks.
-
 
 **On top of this**, MCPunk provides tools for analysing git diffs to help
 with PR reviews, and provides a task queue that LLMs can read and write, allowing
@@ -47,7 +47,6 @@ TODO
 
 TODO
 
-
 # Common Usage Patterns
 
 ### Answer Questions About Your Codebase & Search for Bugs
@@ -67,10 +66,10 @@ it's a big "who cares 🤷")
   (TOCTOU) vulnerability because the selection and update of the task aren't atomic....
 - **[User]** Great job pal!
 
-
 ### PR Review Split Into Tasks
 
 This demonstrates
+
 - Grab a diff between current branch and another
 - Putting tasks on a queue for other LLM chat sessions to perform
 - Running tasks from the queue
@@ -103,16 +102,27 @@ This demonstrates
   with refrenc to the remainder of the codebase, then mark the task as done with
   a relevant outcome note
 - **[Claude]** (adds tasks)
-  - 1. Set up ~/git/mcpunk repo 2. Get diff between HEAD and scratch/1.5 3. Review _branches_from_reflog function in mcpunk/git_analysis.py, particularly the `split('to ')[-1]` logic 4. Check this against branch names containing spaces or special characters 5. If issues found, validate against git's reflog documentation
-  - 1. Set up ~/git/mcpunk repo 2. Get diff between HEAD and scratch/1.5 3. Compare example_reflog test data in tests/test_git_analysis.py against actual git reflog output from multiple repos 4. Verify it covers common reflog scenarios (merges, rebases, checkouts) 5. Document any missing patterns
-  - 1. Set up ~/git/mcpunk repo 2. Get diff between HEAD and scratch/1.5 3. Review get_recent_branches function in mcpunk/git_analysis.py 4. Verify there are integration tests that check the full function with a real git repo, not just the helper 5. If missing, document test gaps
+  - 1. Set up ~/git/mcpunk repo 2. Get diff between HEAD and scratch/1.5 3.
+    Review _branches_from_reflog function in mcpunk/git_analysis.py, particularly
+     the `split('to ')[-1]` logic 4. Check this against branch names containing
+     spaces or special characters 5. If issues found, validate against git's reflog documentation
+  - 1. Set up ~/git/mcpunk repo 2. Get diff between HEAD and scratch/1.5 3.
+    Compare example_reflog test data in tests/test_git_analysis.py against actual
+    git reflog output from multiple repos 4. Verify it covers common reflog scenarios
+    (merges, rebases, checkouts) 5. Document any missing patterns
+  - 1. Set up ~/git/mcpunk repo 2. Get diff between HEAD and scratch/1.5 3.
+    Review get_recent_branches function in mcpunk/git_analysis.py 4. Verify there
+    are integration tests that check the full function with a real git repo, not
+    just the helper 5. If missing, document test gaps
 - **[Claude]** (attempts to get a task but rejected by user)
 
 Start a totally new chat
+
 - **[User]** Hey buddy can you please grab a task and complete it
 - **[Claude]** grabs a task, sets up project, gets diff, digs around project
 - **[Claude]** discusses details
 - **[Claude]** marks task done with note:
+
 ```
 Found potential issues with _branches_from_reflog function:
 1. Current implementation is brittle as it uses simple string splitting
@@ -123,14 +133,12 @@ Recommend using regex pattern matching to properly parse reflog format
 follow_up_criticality: medium
 ```
 
-
 # Limitations
 
 - Sometimes LLM is poor at searching. e.g. search for "dependency", missing
   terms "dependencies". Room to stem things.
 - Sometimes LLM will try to find a specific piece of critical code but fail to
   find it, then continue without acknowledging it has limited contextual awareness.
-
 
 # Configuration
 
@@ -141,6 +149,7 @@ TODO
 MCPunk is at a minimum usable state right now.
 
 **Critical Planned functionality**
+
 - Ability for users to provide custom code to perform chunking (critical)
 - Add a bunch of prompts to help with using MCPunk
 - Repeat description in response - LLM has tendency to fetch tasks right after
@@ -186,13 +195,13 @@ MCPunk is at a minimum usable state right now.
 - Ability to edit files - why not? Can do it like aider where LLM produces a diff.
 
 **Just ideas**
+
 - Something like tree sitter could possibly be used for a more generic chunker
 - Better handling of large chunks
   - Configurable Max response size for chunks
   - Log warning for any chunk over max size when initialising project
 - Tracking of characters sent/received, ideally by chat.
 - State, logging, etc by chat
-
 
 # Development
 

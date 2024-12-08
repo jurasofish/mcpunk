@@ -562,33 +562,41 @@ def _filter_files_by_chunk(
 if __name__ == "__main__":
     # mark_task_done(task_id=10, outcome="ok", follow_up_criticality="low")
     configure_project(
-        root_path=pathlib.Path("~/git/vippy_backend"),
-        project_name="vippy_backend",
+        root_path=pathlib.Path("~/git/mcpunk"),
+        project_name="mcpunk",
     )
     print()
-    _proj = PROJECTS["vippy_backend"].chunk_project
+    _proj = PROJECTS["mcpunk"].chunk_project
     print(len([f for f in _proj.files if f.ext == ".py"]), "files")
     print(sum(len(f.contents.splitlines()) for f in _proj.files if f.ext == ".py"), "lines")
     print(sum(len(f.contents) for f in _proj.files if f.ext == ".py"), "chars")
     list_files_by_chunk_type_and_chunk_contents(
-        project_name="vippy_backend",
+        project_name="mcpunk",
         chunk_type="markdown section",
-        filter_="logs",
+        filter_="desktop",
+    )
+    _list_chunks_in_file(
+        proj_file=ProjectFile(
+            project_name="mcpunk",
+            rel_path=pathlib.Path("README.md"),
+        ),
+        chunk_type="markdown section",
+        filter_=None,
+        filter_on="name",
     )
     chunk_details(
         proj_file=ProjectFile(
-            project_name="vippy_backend",
-            rel_path=pathlib.Path("docs/infrastructure.md"),
+            project_name="mcpunk",
+            rel_path=pathlib.Path("README.md"),
         ),
-        # name="# Infrastructure",
-        chunk_name="# Infrastructure",
+        chunk_name="Development",
     )
     # f = [
     #     x
-    #     for x in PROJECTS["vippy_backend"].chunk_project.files
-    #     if x.abs_path == pathlib.Path(PROJECTS["vippy_backend"].root / "docs/infrastructure.md")
+    #     for x in PROJECTS["mcpunk"].chunk_project.files
+    #     if x.abs_path == pathlib.Path(PROJECTS["mcpunk"].root / "docs/infrastructure.md")
     # ][0]
     diff_with_ref(
-        project_name="vippy_backend",
-        ref="develop",
+        project_name="mcpunk",
+        ref="main",
     )

@@ -160,16 +160,26 @@ Recommend using regex pattern matching to properly parse reflog format
 follow_up_criticality: medium
 ```
 
+### Work across multiple codebases
+
+You can just ask your LLM to set up multiple projects, and it can freely query
+across them. Handy if one depends on the other, and they're in different repos.
+In this case the LLM should recognise this via imports.
+
 # Limitations
 
 - Sometimes LLM is poor at searching. e.g. search for "dependency", missing
   terms "dependencies". Room to stem things.
 - Sometimes LLM will try to find a specific piece of critical code but fail to
   find it, then continue without acknowledging it has limited contextual awareness.
+- "Large" projects are not well tested. A project with ~1000 Python files containing
+  in total ~250k LoC works well. Takes ~5s to setup the project. As codebase
+  size increases, time to perform initial chunking will increase, and likely
+  more sophisticated searching will be required.
 
 # Configuration
 
-TODO
+TODO but through env vars see [settings.py](mcpunk/settings.py)
 
 # Roadmap
 
@@ -233,4 +243,25 @@ MCPunk is at a minimum usable state right now.
 
 # Development
 
-TODO
+Largely still TODO this section
+
+see [run_mcp_server.py](mcpunk/run_mcp_server.py).
+
+If you set up claude desktop like below then you can restart it to see latest
+changes as you work on MCPunk
+
+```json
+{
+  "mcpServers": {
+    "MCPunk": {
+      "command": "/Users/michael/.local/bin/uvx",
+      "args": [
+        "--from",
+        "/Users/michael/git/mcpunk",
+        "--no-cache",
+        "mcpunk"
+      ]
+    }
+  }
+}
+```

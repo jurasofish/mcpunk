@@ -560,12 +560,16 @@ def _filter_files_by_chunk(
 
 
 if __name__ == "__main__":
-    mark_task_done(task_id=10, outcome="ok", follow_up_criticality="low")
+    # mark_task_done(task_id=10, outcome="ok", follow_up_criticality="low")
     configure_project(
         root_path=pathlib.Path("~/git/vippy_backend"),
         project_name="vippy_backend",
     )
     print()
+    _proj = PROJECTS["vippy_backend"].chunk_project
+    print(len([f for f in _proj.files if f.ext == ".py"]), "files")
+    print(sum(len(f.contents.splitlines()) for f in _proj.files if f.ext == ".py"), "lines")
+    print(sum(len(f.contents) for f in _proj.files if f.ext == ".py"), "chars")
     list_files_by_chunk_type_and_chunk_contents(
         project_name="vippy_backend",
         chunk_type="markdown section",

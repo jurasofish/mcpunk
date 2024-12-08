@@ -4,12 +4,12 @@ MCPunk provides tools for [Roaming RAG](https://arcturus-labs.com/blog/2024/11/2
 with [Model Context Protocol](https://github.com/modelcontextprotocol).
 
 MCPunk is built with the following in mind
-- **Chat is king** - 
+- **Chat is king** -
 - **Human in the loop always** -
-- **Context must be carefully managed** - as context 
+- **Context must be carefully managed** - as context
 
-**Core functionality** allows your LLM to configure a project (e.g. a directory 
-containing Python files). The files in this project are automatically "chunked". 
+**Core functionality** allows your LLM to configure a project (e.g. a directory
+containing Python files). The files in this project are automatically "chunked".
 Each chunk is e.g. a Python function or a markdown section.
 The LLM can then query the entire project for chunks with specific names or with
 specific text in their contents. The LLM can then fetch the entire contents
@@ -56,56 +56,56 @@ TODO
 it's a big "who cares 🤷")
 
 - **[User]** Hey pal can you please set up the ~/git/mcpunk repo, then help me
-  troubleshoot why I'm sometimes seeing that with multiple concurrent clients 
+  troubleshoot why I'm sometimes seeing that with multiple concurrent clients
   the same task can be picked up twice
 - **[Claude]** Call `configure_project`
 - **[Claude]** Call `list_files_by_chunk_type_and_chunk_contents` searching for `task` and `get_task` callables
 - **[Claude]** Call `list_all_chunk_names_in_file` for `db.py`
 - **[Claude]** Call `chunk_details` for `db.py:get_task`
-- **[Claude]** I see the potential issue - there's a race condition in the task 
-  retrieval process. The current implementation has a Time-Of-Check to Time-Of-Use 
+- **[Claude]** I see the potential issue - there's a race condition in the task
+  retrieval process. The current implementation has a Time-Of-Check to Time-Of-Use
   (TOCTOU) vulnerability because the selection and update of the task aren't atomic....
 - **[User]** Great job pal!
 
 
 ### PR Review Split Into Tasks
 
-This demonstrates 
+This demonstrates
 - Grab a diff between current branch and another
 - Putting tasks on a queue for other LLM chat sessions to perform
 - Running tasks from the queue
 
-- **[user]** Hey pal can you please set up the ~/git/mcpunk repo and have a 
+- **[user]** Hey pal can you please set up the ~/git/mcpunk repo and have a
   look at the current branch versus `scratch/1.5`
 - **[Claude]** [fumbles trying to set up /home/claude/git/mcpunk but eventually gets ~/git/mcpunk]
 - **[Claude]** Call `diff_with_ref` for ref `scratch/1.5`
-- **[Claude]** I see you've made several changes, primarily adding a new test 
+- **[Claude]** I see you've made several changes, primarily adding a new test
   file `tests/test_git_analysis.py`...
 - **[user]** how does this fit into the rest of the codebase?
 - **[Claude]** Makes 5 tool calls for listing files by chunks, listing chunks,
   fetching chunk details
-- **[Claude]** I see - the code parses git reflog output to track recently 
-  checked out branches. The main function get_recent_branches takes a repo path 
-  and returns the last N branches that were checked out, using _branches_from_reflog 
+- **[Claude]** I see - the code parses git reflog output to track recently
+  checked out branches. The main function get_recent_branches takes a repo path
+  and returns the last N branches that were checked out, using _branches_from_reflog
   as a helper to parse the raw reflog output.
-- **[User]** If you were in a rush and had to direct someone to review this work, 
+- **[User]** If you were in a rush and had to direct someone to review this work,
   what would you direct them to look at? Please outline discrete pieces of work
 - **[Claude]** (tries to use the add task tool, but rejected by user)
-- **[Claude]** 
+- **[Claude]**
   - The `split("to ")[-1]` in _branches_from_reflog looks fragile
   - Test data only shows simple branch names, what about spaces/special chars?
   - Is example_reflog representative of real git reflog output?
   - Are we testing against actual git behavior?
-- **[User]** Can you please go ahead and add a single task for each of these items, 
-  using the task tool. Each task must be totally self contained with all relevant context, 
-  such that a new person could pick it up and know exactly what to do.  For example, 
-  it must specify to set up the project, get the diff, and look at a specific area 
-  with refrenc to the remainder of the codebase, then mark the task as done with 
+- **[User]** Can you please go ahead and add a single task for each of these items,
+  using the task tool. Each task must be totally self contained with all relevant context,
+  such that a new person could pick it up and know exactly what to do.  For example,
+  it must specify to set up the project, get the diff, and look at a specific area
+  with refrenc to the remainder of the codebase, then mark the task as done with
   a relevant outcome note
 - **[Claude]** (adds tasks)
   - 1. Set up ~/git/mcpunk repo 2. Get diff between HEAD and scratch/1.5 3. Review _branches_from_reflog function in mcpunk/git_analysis.py, particularly the `split('to ')[-1]` logic 4. Check this against branch names containing spaces or special characters 5. If issues found, validate against git's reflog documentation
   - 1. Set up ~/git/mcpunk repo 2. Get diff between HEAD and scratch/1.5 3. Compare example_reflog test data in tests/test_git_analysis.py against actual git reflog output from multiple repos 4. Verify it covers common reflog scenarios (merges, rebases, checkouts) 5. Document any missing patterns
-  - 1. Set up ~/git/mcpunk repo 2. Get diff between HEAD and scratch/1.5 3. Review get_recent_branches function in mcpunk/git_analysis.py 4. Verify there are integration tests that check the full function with a real git repo, not just the helper 5. If missing, document test gaps 
+  - 1. Set up ~/git/mcpunk repo 2. Get diff between HEAD and scratch/1.5 3. Review get_recent_branches function in mcpunk/git_analysis.py 4. Verify there are integration tests that check the full function with a real git repo, not just the helper 5. If missing, document test gaps
 - **[Claude]** (attempts to get a task but rejected by user)
 
 Start a totally new chat
@@ -128,8 +128,8 @@ follow_up_criticality: medium
 
 - Sometimes LLM is poor at searching. e.g. search for "dependency", missing
   terms "dependencies". Room to stem things.
-- Sometimes LLM will try to find a specific piece of critical code but fail to 
-  find it, then continue without acknowledging it has limited contextual awareness.  
+- Sometimes LLM will try to find a specific piece of critical code but fail to
+  find it, then continue without acknowledging it has limited contextual awareness.
 
 
 # Configuration
@@ -170,8 +170,8 @@ MCPunk is at a minimum usable state right now.
     considerations.
 - For small (say, <500 chars) files maybe just unconditionally put them as one
   chunk, not much point breaking them up.
-- Switch up chunk fetching, like let's say 
-  - each chunk has a randomly generated id that's used to get its details 
+- Switch up chunk fetching, like let's say
+  - each chunk has a randomly generated id that's used to get its details
     (makes llm_known_chunks redundant 💩)
   - Don't require filtering on chunk type when searching, just search for all
     chunk types

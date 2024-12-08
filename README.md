@@ -142,7 +142,8 @@ This demonstrates
     Review get_recent_branches function in mcpunk/git_analysis.py 4. Verify there
     are integration tests that check the full function with a real git repo, not
     just the helper 5. If missing, document test gaps
-Start a totally new chat
+
+Start a totally new chat:
 
 - **[User]** Hey buddy can you please grab a task and complete it
 - **[Claude]** grabs a task, sets up project, gets diff, digs around project

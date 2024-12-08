@@ -57,7 +57,21 @@ TODO
 
 ### Search for Bugs
 
-TODO
+(this is a genuine race condition in MCPunk but given how things are used
+it's a big "who cares")
+
+- **[User]** Hey pal can you please set up the ~/git/mcpunk repo, then help me
+  troubleshoot why I'm sometimes seeing that with multiple concurrent clients 
+  the same task can be picked up twice
+- **[Claude]** Call `configure_project`
+- **[Claude]** Call `list_files_by_chunk_type_and_chunk_contents` searching for `task` and `get_task` callables
+- **[Claude]** Call `list_all_chunk_names_in_file` for `db.py`
+- **[Claude]** Call `chunk_details` for `db.py:get_task`
+- **[Claude]** I see the potential issue - there's a race condition in the task 
+  retrieval process. The current implementation has a Time-Of-Check to Time-Of-Use 
+  (TOCTOU) vulnerability because the selection and update of the task aren't atomic....
+- **[User]** Great job pal!
+
 
 ### PR Review
 
@@ -69,7 +83,10 @@ TODO
 
 # Limitations
 
-TODO
+- Sometimes LLM is poor at searching. e.g. search for "dependency", missing
+  terms "dependencies". Room to stem things.
+- Sometimes LLM will try to find a specific piece of critical code but fail to 
+  find it, then continue without acknowledging it has limited contextual awareness.  
 
 
 # Configuration
@@ -83,8 +100,7 @@ Planned functionality
 - Better ability to chunk git diffs
 - Ability for users to provide custom code to perform chunking
 - Improved logging, likely into the db itself
-- 
-
+- Possibly stemming for search
 
 
 # Development

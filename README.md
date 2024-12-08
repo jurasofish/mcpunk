@@ -50,15 +50,10 @@ TODO
 
 # Common Usage Patterns
 
-### Answer Questions About Your Codebase
-
-TODO
-
-
-### Search for Bugs
+### Answer Questions About Your Codebase & Search for Bugs
 
 (this is a genuine race condition in MCPunk but given how things are used
-it's a big "who cares")
+it's a big "who cares 🤷")
 
 - **[User]** Hey pal can you please set up the ~/git/mcpunk repo, then help me
   troubleshoot why I'm sometimes seeing that with multiple concurrent clients 

@@ -24,8 +24,6 @@ from mcpunk.file_breakdown import (
 )
 from mcpunk.file_chunk import (
     Chunk,
-    ChunkCategory,
-    ChunkCategoryLiteral,
 )
 from mcpunk.git_analysis import get_recent_branches
 from mcpunk.util import create_file_tree, log_inputs
@@ -308,45 +306,41 @@ def list_files_in_project(
 
 @mcp.tool()
 @log_inputs
-def list_files_by_chunk_type_and_chunk_name(
+def list_files_by_chunk_name(
     project_name: str,
-    chunk_type: ChunkCategoryLiteral,
     filter_: FilterType,
 ) -> ToolResponse:
     """List all files containing any chunk with specified type, and name matching filter"""
-    return _filter_files_by_chunk(project_name, chunk_type, filter_, "name").render()
+    return _filter_files_by_chunk(project_name, filter_, "name").render()
 
 
 @mcp.tool()
 @log_inputs
-def list_files_by_chunk_type_and_chunk_contents(
+def list_files_by_chunk_contents(
     project_name: str,
-    chunk_type: ChunkCategoryLiteral,
     filter_: FilterType,
 ) -> ToolResponse:
     """List all files containing any chunk with specified type, and contents matching filter"""
-    return _filter_files_by_chunk(project_name, chunk_type, filter_, "name_or_content").render()
+    return _filter_files_by_chunk(project_name, filter_, "name_or_content").render()
 
 
 @mcp.tool()
 @log_inputs
-def list_all_chunk_names_in_file(
+def list_all_chunk_meta_in_file(
     proj_file: ProjectFile,
-    chunk_type: ChunkCategoryLiteral,
 ) -> ToolResponse:
     """List chunk names in a specific file"""
-    return _list_chunks_in_file(proj_file, chunk_type, None, "name").render()
+    return _list_chunks_in_file(proj_file, None, "name").render()
 
 
 @mcp.tool()
 @log_inputs
-def list_all_chunk_names_in_file_where_contents_match(
+def list_all_chunk_meta_in_file_where_contents_match(
     proj_file: ProjectFile,
-    chunk_type: ChunkCategoryLiteral,
     filter_: FilterType,
 ) -> ToolResponse:
     """List chunk names in a specific file where the contents match given filter"""
-    return _list_chunks_in_file(proj_file, chunk_type, filter_, "name_or_content").render()
+    return _list_chunks_in_file(proj_file, filter_, "name_or_content").render()
 
 
 @mcp.tool()
@@ -358,9 +352,9 @@ def chunk_details(
         Field(
             description=(
                 "You must already know the chunk name, do not guess it. It can be found "
-                f"via the {list_all_chunk_names_in_file.__name__} tool. The chunk "
+                f"via the {list_all_chunk_meta_in_file.__name__} tool. The chunk "
                 f"name provided here must match the chunk name in the "
-                f"{list_all_chunk_names_in_file.__name__} tool exactly."
+                f"{list_all_chunk_meta_in_file_where_contents_match.__name__} tool exactly."
             ),
         ),
     ],
@@ -375,7 +369,7 @@ def chunk_details(
     if len(chunks) == 0:
         return MCPToolOutput(
             text=(
-                f"No matching chunks. Please use the {list_all_chunk_names_in_file.__name__} tool "
+                f"No matching chunks. Please use the {list_all_chunk_meta_in_file.__name__} tool "
                 f"to find available chunks."
             ),
         ).render()
@@ -385,7 +379,7 @@ def chunk_details(
         return MCPToolOutput(
             text=(
                 f"Chunk(s) found, but it's not a chunk that has been listed through the "
-                f"{list_all_chunk_names_in_file.__name__} tool. use that tool to list the chunk "
+                f"{list_all_chunk_meta_in_file.__name__} tool. use that tool to list the chunk "
                 f"and ensure you are aware of it before asking for its details. "
             ),
         ).render()
@@ -520,38 +514,32 @@ def _get_project_or_error(project_name: str) -> ToolProject:
 
 def _list_chunks_in_file(
     proj_file: ProjectFile,
-    chunk_type: ChunkCategoryLiteral,
     filter_: FilterType,
     filter_on: Literal["name", "name_or_content"],
 ) -> MCPToolOutput:
     target_file = proj_file.file
-    chunks = [
-        x
-        for x in target_file.chunks_of_type(ChunkCategory(chunk_type))
-        if x.matches_filter(filter_, filter_on)
-    ]
+    chunks = [x for x in target_file.chunks if x.matches_filter(filter_, filter_on)]
     proj_file.project.llm_known_chunks.extend(chunks)
+
+    resp_data = [{"n": x.name, "t": x.category} for x in chunks]
+
     return MCPToolOutput(
         jsonable=[
             f"{len(chunks)} of {len(target_file.chunks)}",
-            *[x.name for x in chunks],
+            resp_data,
         ],
     )
 
 
 def _filter_files_by_chunk(
     project_name: str,
-    chunk_type: ChunkCategoryLiteral,
     filter_: FilterType,
     filter_on: Literal["name", "name_or_content"],
 ) -> MCPToolOutput:
     project = _get_project_or_error(project_name)
     matching_files: set[pathlib.Path] = set()
     for file in project.chunk_project.files:
-        if any(
-            c.matches_filter(filter_, filter_on)
-            for c in file.chunks_of_type(ChunkCategory(chunk_type))
-        ):
+        if any(c.matches_filter(filter_, filter_on) for c in file.chunks):
             matching_files.add(file.abs_path)
     data = create_file_tree(project_root=project.root, paths=matching_files)
     if data is None:
@@ -570,9 +558,8 @@ if __name__ == "__main__":
     print(len([f for f in _proj.files if f.ext == ".py"]), "files")
     print(sum(len(f.contents.splitlines()) for f in _proj.files if f.ext == ".py"), "lines")
     print(sum(len(f.contents) for f in _proj.files if f.ext == ".py"), "chars")
-    list_files_by_chunk_type_and_chunk_contents(
+    list_files_by_chunk_contents(
         project_name="mcpunk",
-        chunk_type="markdown section",
         filter_="desktop",
     )
     _list_chunks_in_file(
@@ -580,7 +567,6 @@ if __name__ == "__main__":
             project_name="mcpunk",
             rel_path=pathlib.Path("README.md"),
         ),
-        chunk_type="markdown section",
         filter_=None,
         filter_on="name",
     )

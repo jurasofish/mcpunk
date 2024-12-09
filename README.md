@@ -231,10 +231,7 @@ MCPunk is at a minimum usable state right now.
 - Switch up chunk fetching, like let's say
   - each chunk has a randomly generated id that's used to get its details
     (makes llm_known_chunks redundant 💩)
-  - Don't require filtering on chunk type when searching, just search for all
-    chunk types
-  - When listing chunks in a file, include chunk type, chunk id, numer of
-    characters in chunk content
+  - When listing chunks in a file, chunk id, number of  characters in chunk content
 - Include module-level comments when extracting python module-level statements.
 - Caching of a project, so it doesn't need to re-parse all files every time you
   restart MCP client

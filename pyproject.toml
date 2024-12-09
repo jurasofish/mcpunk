@@ -13,7 +13,7 @@ dependencies = [
     "asttokens>=2.4.1",
     "more-itertools>=10.5.0",
     "mcp>=1.0.0",
-    "fastmcp>=0.4.0",
+    "fastmcp>=0.4.1",
     "sqlalchemy>=2.0.36",
     "pre-commit>=4.0.1",
 ]

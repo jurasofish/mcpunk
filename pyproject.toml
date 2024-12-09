@@ -22,13 +22,11 @@ dependencies = [
 mcpunk = "mcpunk.run_mcp_server:main"
 
 [build-system]
-requires = ["setuptools>=61"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling>=1.21.0", "hatch-vcs>=0.4.0"]
+build-backend = "hatchling.build"
 
-
-[tool.setuptools]
-# See https://github.com/astral-sh/uv/issues/9513#issuecomment-2519527822
-license-files = []
+[tool.hatch.version]
+source = "vcs"
 
 [tool.setuptools.dynamic]
 version = {attr = "mcpunk.__version__"}

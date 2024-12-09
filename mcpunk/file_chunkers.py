@@ -2,7 +2,7 @@ from abc import abstractmethod
 from pathlib import Path
 
 from mcpunk.file_chunk import Chunk, ChunkCategory
-from mcpunk.python_file_analysis import Callable, extract_imports
+from mcpunk.python_file_analysis import Callable, extract_imports, extract_module_statements
 
 
 class BaseChunker:
@@ -40,8 +40,15 @@ class PythonChunker(BaseChunker):
     def chunk_file(self) -> list[Chunk]:
         callables = Callable.from_source_code(self.source_code)
         imports = "\n".join(extract_imports(self.source_code))
+        module_level_statements = "\n".join(extract_module_statements(self.source_code))
         chunks: list[Chunk] = [
             Chunk(category=ChunkCategory.imports, name="<imports>", line=None, content=imports),
+            Chunk(
+                category=ChunkCategory.module_level,
+                name="<module_level_statements>",
+                line=None,
+                content=module_level_statements,
+            ),
         ]
         chunks.extend(
             Chunk(

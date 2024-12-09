@@ -124,3 +124,32 @@ def extract_imports(source_code: str) -> list[str]:
             imports.append(import_code)
 
     return imports
+
+
+def extract_module_statements(source_code: str) -> list[str]:
+    """Extract all module-level statements from source code.
+
+     function/class definitions are inserted like `def func1...` or `class MyClass...`
+     to provide context around where the module-level statements are defined.
+
+    Takes source code as input and returns a list of statement strings.
+    """
+    # TODO: include comments
+
+    atok = asttokens.ASTTokens(source_code, parse=True)
+    statements: list[str] = []
+
+    for node in atok.tree.body:  # type: ignore[union-attr]
+        if isinstance(node, ast.FunctionDef):
+            statements.append(f"def {node.name}...")
+        elif isinstance(node, ast.AsyncFunctionDef):
+            statements.append(f"async def {node.name}...")
+        elif isinstance(node, ast.ClassDef):
+            statements.append(f"class {node.name}...")
+        elif isinstance(node, ast.Import | ast.ImportFrom):
+            pass
+        else:
+            statement_code = atok.get_text(node)
+            statements.append(statement_code)
+
+    return statements

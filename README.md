@@ -235,8 +235,7 @@ MCPunk is at a minimum usable state right now.
     chunk types
   - When listing chunks in a file, include chunk type, chunk id, numer of
     characters in chunk content
-- Add a `__main__` chunk for Python, plus a chunk for "any not yet accounted for
-  module-level statements"
+- Include module-level comments when extracting python module-level statements.
 - Caching of a project, so it doesn't need to re-parse all files every time you
   restart MCP client
 - Handle changed files sensibly, so you don't need to restart MCP client

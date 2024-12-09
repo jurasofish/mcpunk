@@ -3,7 +3,7 @@ import textwrap
 import deepdiff
 import pytest
 
-from mcpunk.python_file_analysis import Callable, extract_imports
+from mcpunk.python_file_analysis import Callable, extract_imports, extract_module_statements
 
 # This makes pytest print nice diffs when asserts fail
 # within this function.
@@ -769,3 +769,51 @@ from typing import List  # module level at end
 
     result = extract_imports(source)
     assert result == ["import os", "import json", "from typing import List"]
+
+
+def test_extract_module_statements() -> None:
+    source = """\
+import os
+x = 1
+
+def func1():
+    y = 2
+    return y
+
+CONSTANT = "test"
+import json
+
+class MyClass:
+    z = 3
+
+    def method(self):
+        pass
+
+final_var = True
+
+a = (
+    1,
+    # Internal comment
+    2,
+)
+
+if __name__ == "__main__":
+    print("hey!")
+
+# A comment!
+
+async def func2():
+    pass
+"""
+
+    result = extract_module_statements(source)
+    assert result == [
+        "x = 1",
+        "def func1...",
+        'CONSTANT = "test"',
+        "class MyClass...",
+        "final_var = True",
+        "a = (\n    1,\n    # Internal comment\n    2,\n)",
+        'if __name__ == "__main__":\n    print("hey!")',
+        "async def func2...",
+    ]

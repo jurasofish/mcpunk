@@ -214,12 +214,16 @@ def configure_project(
 ) -> ToolResponse:
     """Configure a new project containing files.
 
-    These files are split into 'chunks', which can be explored with the other tools.
-    For example, a chunk might be a function, or a markdown section, or all imports
-    in a file. A chunk name will be like `my_function` or `My Class` or `# My Section`.
-    The contents will be the code itself starting with `def ...` or `class ...` or
-    `# My Section` etc.
-    Use ~ (tilde) literally if the user specifies it.
+    Each file in the project is split into 'chunks' - logical sections like functions,
+    classes, markdown sections, and import blocks.
+
+    After configuring, use these common workflows:
+    1. Find function definitions:
+       find_files_by_chunk_name -> find_matching_chunks_in_file -> chunk_details
+    2. Find usages/implementations:
+       find_files_by_chunk_content -> find_matching_chunks_in_file -> chunk_details
+
+    Use ~ (tilde) literally if the user specifies it in paths.
     """
     path = root_path.expanduser().absolute()
     if project_name in PROJECTS:
@@ -229,8 +233,18 @@ def configure_project(
     return MCPToolOutput(
         text=(
             f"Project {path} configured with {len(project.chunk_project.files)} files. "
-            f"Do not immediately list files or otherwise use the project unless "
-            f"explicitly told to do so."
+            f"Files are split into 'chunks' - logical sections like:\n"
+            f"- Functions (e.g. 'def my_function')\n"
+            f"- Classes (e.g. 'class MyClass')\n"
+            f"- Markdown sections (e.g. '# Section')\n"
+            f"- Import blocks\n"
+            f"Common workflows:\n"
+            f"1. Find function definitions: "
+            f"find_files_by_chunk_name -> find_matching_chunks_in_file -> chunk_details\n"
+            f"2. Find function uses: "
+            f"find_files_by_chunk_content -> find_matching_chunks_in_file -> chunk_details\n"
+            f"Do not immediately list files or otherwise use the project "
+            f"unless explicitly told to do so."
         ),
     ).render()
 
@@ -251,7 +265,7 @@ def list_files_in_project(
         ),
     ] = None,
 ) -> ToolResponse:
-    """List all files in a project.
+    """List all files in a project, returning a file tree.
 
     A project may have many files, so you are suggested
     to start with a depth limit to get an overview, and then continue increasing
@@ -273,41 +287,68 @@ def list_files_in_project(
 
 @mcp.tool()
 @log_inputs
-def list_files_by_chunk_name(
+def find_files_by_chunk_name(
     project_name: str,
     chunk_name_filter: FilterType,
 ) -> ToolResponse:
-    """List all files containing any chunk with specified type, and name matching filter."""
+    """Step 1: Find files containing chunks with matching names.
+
+    Returns file tree only showing which files contain matches.
+    You must use find_matching_chunks_in_file on each relevant file
+    to see the actual matches.
+
+    Example workflow:
+    1. Find files:
+       files = find_files_by_chunk_name(project, ["MyClass"])
+    2. For each file, find actual matches:
+       matches = find_matching_chunks_in_file(file, ["MyClass"])
+    3. Get content:
+       content = chunk_details(file, match_id)
+
+    Name search only matches chunk names (e.g. function/class names),
+    not their contents. Use find_files_by_chunk_content to search
+    implementation details.
+    """
     return _filter_files_by_chunk(project_name, chunk_name_filter, "name").render()
 
 
 @mcp.tool()
 @log_inputs
-def list_files_by_chunk_contents(
+def find_files_by_chunk_content(
     project_name: str,
     chunk_contents_filter: FilterType,
 ) -> ToolResponse:
-    """List files containing any chunk with specified type, and contents or name matching filter"""
+    """Step 1: Find files containing chunks with matching text.
+
+    Returns file tree only showing which files contain matches.
+    You must use find_matching_chunks_in_file on each relevant file
+    to see the actual matches.
+
+    Example workflow:
+    1. Find files:
+       files = find_files_by_chunk_content(project, ["MyClass"])
+    2. For each file, find actual matches:
+       matches = find_matching_chunks_in_file(file, ["MyClass"])
+    3. Get content:
+       content = chunk_details(file, match_id)
+    """
     return _filter_files_by_chunk(project_name, chunk_contents_filter, "name_or_content").render()
 
 
 @mcp.tool()
 @log_inputs
-def list_all_chunk_meta_in_file(
+def find_matching_chunks_in_file(
     proj_file: ProjectFile,
+    filter_: FilterType,
 ) -> ToolResponse:
-    """List chunk metadata in a specific file"""
-    return _list_chunks_in_file(proj_file, None, "name").render()
+    """Step 2: Find the actual matching chunks in a specific file.
 
+    Required after find_files_by_chunk_* to see matches, as those tools
+    only show which files contain matches.
 
-@mcp.tool()
-@log_inputs
-def list_all_chunk_meta_in_file_where_contents_match(
-    proj_file: ProjectFile,
-    chunk_contents_filter: FilterType,
-) -> ToolResponse:
-    """List chunk metadata in a specific file where the contents or name match given filter"""
-    return _list_chunks_in_file(proj_file, chunk_contents_filter, "name_or_content").render()
+    Returns array of {n: name, t: type, id: identifier, chars: length}
+    """
+    return _list_chunks_in_file(proj_file, filter_, "name_or_content").render()
 
 
 @mcp.tool()
@@ -316,7 +357,14 @@ def chunk_details(
     proj_file: ProjectFile,
     chunk_id: str,
 ) -> ToolResponse:
-    """Full contents of a specific chunk."""
+    """Get full content of a specific chunk.
+
+    Returns chunk content as string.
+
+    Common patterns:
+    1. Final step after find_matching_chunks_in_file finds relevant chunks
+    2. Examining implementations after finding definitions/uses
+    """
     target_file = proj_file.file
     chunks = [chunk for chunk in target_file.chunks if chunk.id_ == chunk_id]
     if len(chunks) == 0:
@@ -511,7 +559,7 @@ if __name__ == "__main__":
     print(len([f for f in _proj.files if f.ext == ".py"]), "files")
     print(sum(len(f.contents.splitlines()) for f in _proj.files if f.ext == ".py"), "lines")
     print(sum(len(f.contents) for f in _proj.files if f.ext == ".py"), "chars")
-    list_files_by_chunk_contents(
+    find_files_by_chunk_content(
         project_name="mcpunk",
         chunk_contents_filter=["desktop"],
     )

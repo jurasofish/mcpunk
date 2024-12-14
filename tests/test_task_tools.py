@@ -14,7 +14,7 @@ def test_add_tasks() -> None:
     """Test that add_tasks creates tasks with correct properties."""
     actions = ["task one", "task two"]
     prefix = "common stuff"
-    tools.add_tasks(task_actions=actions, common_prefix=prefix)
+    tools.add_tasks(tasks=actions, common_prefix=prefix)
 
     with deps.session_maker().begin() as sess:
         tasks = sess.scalars(sa.select(db.Task).order_by(db.Task.id)).all()
@@ -30,7 +30,7 @@ def test_add_tasks() -> None:
 def test_get_task() -> None:
     """Test that get_task returns and updates task correctly."""
     # Create tasks
-    tools.add_tasks(task_actions=["task one", "task two"])
+    tools.add_tasks(tasks=["task one", "task two"])
 
     # Get first task
     task_info_raw = tools.get_task()
@@ -57,7 +57,7 @@ def test_get_task_none_available() -> None:
 
 def test_mark_task_done() -> None:
     """Test marking a task as done with an outcome."""
-    tools.add_tasks(task_actions=["task one"])
+    tools.add_tasks(tasks=["task one"])
 
     with deps.session_maker().begin() as sess:
         task_id = sess.scalars(sa.select(db.Task)).one().id
@@ -108,7 +108,7 @@ def test_get_task_visibility_timeout() -> None:
     settings = Settings(task_queue_visibility_timeout_seconds=10_000)
 
     with deps.override(settings_partial=settings):
-        tools.add_tasks(task_actions=["task one"])
+        tools.add_tasks(tasks=["task one"])
 
         # Pick up task
         task_info_raw = tools.get_task()

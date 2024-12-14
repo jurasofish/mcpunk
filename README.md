@@ -201,9 +201,6 @@ MCPunk is at a minimum usable state right now.
 - Ability for users to provide custom code to perform chunking (critical)
 - Add a bunch of prompts to help with using MCPunk. Without real "explain how to make
   a pancake to an alien"-type prompts things do fall a little flat.
-- Repeat description in response - LLM has tendency to fetch tasks right after
-  adding them to add note to add_tasks response noting not to fetch them unless
-  explicitly instructed to do so. etc etc.
 
 **High up on the roadmap**
 

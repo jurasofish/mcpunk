@@ -7,6 +7,7 @@ from typing import Annotated, Any, Literal, Self
 
 import mcp.types as mcp_types
 from fastmcp import FastMCP
+from git import Repo
 from pydantic import (
     BaseModel,
     Field,
@@ -226,10 +227,10 @@ def configure_project(
 
     These files are split into 'chunks', which can be explored with the other tools.
     For example, a chunk might be a function, or a markdown section, or all imports
-     in a file. A chunk name will be like `my_function` or `My Class` or `# My Section`.
+    in a file. A chunk name will be like `my_function` or `My Class` or `# My Section`.
     The contents will be the code itself starting with `def ...` or `class ...` or
     `# My Section` etc.
-    Use ~ literally if the user specifies it.
+    Use ~ (tilde) literally if the user specifies it.
     """
     path = root_path.expanduser().absolute()
     if project_name in PROJECTS:
@@ -237,7 +238,11 @@ def configure_project(
     project = ToolProject(chunk_project=FileBreakdownProject.from_root_dir(path))
     PROJECTS[project_name] = project
     return MCPToolOutput(
-        text=f"Project {path} configured with {len(project.chunk_project.files)} files",
+        text=(
+            f"Project {path} configured with {len(project.chunk_project.files)} files. "
+            f"Do not immediately list files or otherwise use the project unless "
+            f"explicitly told to do so."
+        ),
     ).render()
 
 
@@ -245,23 +250,13 @@ def configure_project(
 @log_inputs
 def list_files_in_project(
     project_name: str,
-    name_filter: Annotated[
-        str | None | list[str],
-        Field(
-            description=(
-                "Filter files by name. If None, all files are returned. "
-                "If not None, only files whose name contains this string are returned. "
-                "If a list, only files whose name contains any of the strings in the list "
-                "are returned."
-            ),
-        ),
-    ] = None,
+    path_filter: FilterType = None,
     limit_depth_from_root: Annotated[
         int | None,
         Field(
             description=(
                 "Limit the depth of the search to this many directories from the root. "
-                "Start with 1."
+                "Typically,start with 1 to get an overview of the project."
                 "If None, search all directories from the root."
             ),
         ),
@@ -271,7 +266,7 @@ def list_files_in_project(
 
     A project may have many files, so you are suggested
     to start with a depth limit to get an overview, and then continue increasing
-    the depth limit plus a filter to filter to paths in specific subdirectories.
+    the depth limit with a filter to look at specific subdirectories.
     """
     project = _get_project_or_error(project_name)
     data = create_file_tree(
@@ -279,7 +274,7 @@ def list_files_in_project(
         paths={x.abs_path for x in project.chunk_project.files},
         expand_parent_directories=True,
         limit_depth_from_root=limit_depth_from_root,
-        filter_=name_filter,
+        filter_=path_filter,
     )
     if data is None:
         return MCPToolOutput(text="No paths").render()
@@ -291,20 +286,20 @@ def list_files_in_project(
 @log_inputs
 def list_files_by_chunk_name(
     project_name: str,
-    filter_: FilterType,
+    chunk_name_filter: FilterType,
 ) -> ToolResponse:
-    """List all files containing any chunk with specified type, and name matching filter"""
-    return _filter_files_by_chunk(project_name, filter_, "name").render()
+    """List all files containing any chunk with specified type, and name matching filter."""
+    return _filter_files_by_chunk(project_name, chunk_name_filter, "name").render()
 
 
 @mcp.tool()
 @log_inputs
 def list_files_by_chunk_contents(
     project_name: str,
-    filter_: FilterType,
+    chunk_contents_filter: FilterType,
 ) -> ToolResponse:
-    """List all files containing any chunk with specified type, and contents matching filter"""
-    return _filter_files_by_chunk(project_name, filter_, "name_or_content").render()
+    """List files containing any chunk with specified type, and contents or name matching filter"""
+    return _filter_files_by_chunk(project_name, chunk_contents_filter, "name_or_content").render()
 
 
 @mcp.tool()
@@ -312,7 +307,7 @@ def list_files_by_chunk_contents(
 def list_all_chunk_meta_in_file(
     proj_file: ProjectFile,
 ) -> ToolResponse:
-    """List chunk names in a specific file"""
+    """List chunk metadata in a specific file"""
     return _list_chunks_in_file(proj_file, None, "name").render()
 
 
@@ -320,10 +315,10 @@ def list_all_chunk_meta_in_file(
 @log_inputs
 def list_all_chunk_meta_in_file_where_contents_match(
     proj_file: ProjectFile,
-    filter_: FilterType,
+    chunk_contents_filter: FilterType,
 ) -> ToolResponse:
-    """List chunk names in a specific file where the contents match given filter"""
-    return _list_chunks_in_file(proj_file, filter_, "name_or_content").render()
+    """List chunk metadata in a specific file where the contents or name match given filter"""
+    return _list_chunks_in_file(proj_file, chunk_contents_filter, "name_or_content").render()
 
 
 @mcp.tool()
@@ -393,8 +388,6 @@ def diff_with_ref(
     checked out branches.
     """
     project = _get_project_or_error(project_name)
-    from git import Repo
-
     repo = Repo(project.git_path)
     # head = repo.head.commit
     # compare_from = repo.commit(ref)
@@ -411,7 +404,14 @@ def diff_with_ref(
 @mcp.tool()
 @log_inputs
 def add_tasks(
-    task_actions: Annotated[list[str], Field(min_length=1, max_length=10)],
+    tasks: Annotated[
+        list[str],
+        Field(
+            min_length=1,
+            max_length=10,
+            description="Each string in the list is an individual task.",
+        ),
+    ],
     common_prefix: str | None = None,
 ) -> ToolResponse:
     """Add tasks to be completed by an LLM in the future.
@@ -428,12 +428,14 @@ def add_tasks(
     Call this tool multiple times to add many tasks.
     """
     if common_prefix is not None:
-        task_actions = [f"{common_prefix} {action}" for action in task_actions]
+        tasks = [f"{common_prefix} {action}" for action in tasks]
 
     with db.get_task_manager() as task_manager:
-        for task_action in task_actions:
+        for task_action in tasks:
             task_manager.add_task(task_action)
-    return MCPToolOutput(text="ok").render()
+    return MCPToolOutput(
+        text="Tasks(s) added. Do not immediately get a task unless explicitly told to do so.",
+    ).render()
 
 
 @mcp.tool()
@@ -441,6 +443,7 @@ def add_tasks(
 def get_task() -> ToolResponse:
     """Get a single task.
 
+    Do not use this tool unless explicitly told to do so.
     After you complete the task, mark it as done by calling the `set_task_done` tool.
     """
     with db.get_task_manager() as task_manager:
@@ -543,7 +546,7 @@ if __name__ == "__main__":
     print(sum(len(f.contents) for f in _proj.files if f.ext == ".py"), "chars")
     list_files_by_chunk_contents(
         project_name="mcpunk",
-        filter_="desktop",
+        chunk_contents_filter="desktop",
     )
     _list_chunks_in_file(
         proj_file=ProjectFile(

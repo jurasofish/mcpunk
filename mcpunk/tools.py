@@ -40,7 +40,7 @@ ToolResponseSingleItem = mcp_types.TextContent | mcp_types.ImageContent | mcp_ty
 ToolResponseSequence = Sequence[ToolResponseSingleItem]
 ToolResponse = ToolResponseSequence | ToolResponseSingleItem
 FilterType = Annotated[
-    str | list[str] | None,
+    list[str] | None,
     Field(description="Match if any of these strings appear. Match all if None/null."),
 ]
 
@@ -546,7 +546,7 @@ if __name__ == "__main__":
     print(sum(len(f.contents) for f in _proj.files if f.ext == ".py"), "chars")
     list_files_by_chunk_contents(
         project_name="mcpunk",
-        chunk_contents_filter="desktop",
+        chunk_contents_filter=["desktop"],
     )
     _list_chunks_in_file(
         proj_file=ProjectFile(

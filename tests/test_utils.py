@@ -80,7 +80,7 @@ def test_create_file_tree_with_filter(tmp_path: Path) -> None:
         tmp_path / "data.txt",
     }
 
-    result = create_file_tree(project_root=tmp_path, paths=paths, filter_=".py")
+    result = create_file_tree(project_root=tmp_path, paths=paths, filter_=[".py"])
     assert result == {
         "root": {
             "f": ["main.py", "test.py"],
@@ -142,11 +142,6 @@ def test_matches_filter() -> None:
     # Test None filter
     assert matches_filter(None, "test") is True
     assert matches_filter(None, None) is True
-
-    # Test string filter
-    assert matches_filter("abc", "abcdef") is True
-    assert matches_filter("xyz", "abcdef") is False
-    assert matches_filter("abc", None) is False
 
     # Test list filter
     assert matches_filter(["abc", "def"], "abcdef") is True

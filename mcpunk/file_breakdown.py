@@ -12,12 +12,15 @@ from mcpunk.file_chunkers import (
     BaseChunker,
     MarkdownChunker,
     PythonChunker,
+    VueChunker,
     WholeFileChunker,
 )
 
 ALL_CHUNKERS: list[type[BaseChunker]] = [
     PythonChunker,
     MarkdownChunker,
+    VueChunker,
+    # Want the WholeFileChunker to be last as it's more of a "fallback" chunker
     WholeFileChunker,
 ]
 

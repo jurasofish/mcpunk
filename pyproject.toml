@@ -16,6 +16,7 @@ dependencies = [
     "fastmcp>=0.4.1",
     "sqlalchemy>=2.0.36",
     "pre-commit>=4.0.1",
+    "beautifulsoup4>=4.12.3",
 ]
 
 [project.scripts]

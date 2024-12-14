@@ -19,6 +19,7 @@ class ChunkCategory(enum.StrEnum):
     imports = "imports"
     module_level = "module_level"
     whole_file = "whole_file"
+    other = "other"
 
 
 # Seems if you annotate a FastMCP tool function with an enum it totally
@@ -29,6 +30,7 @@ ChunkCategoryLiteral = Literal[
     "imports",
     "module_level",
     "whole_file",
+    "other",
 ]
 assert set(get_args(ChunkCategoryLiteral)) == set(ChunkCategory.__members__.values())
 

@@ -1,6 +1,8 @@
 from abc import abstractmethod
 from pathlib import Path
 
+from bs4 import BeautifulSoup
+
 from mcpunk.file_chunk import Chunk, ChunkCategory
 from mcpunk.python_file_analysis import Callable, extract_imports, extract_module_statements
 
@@ -127,6 +129,62 @@ class MarkdownChunker(BaseChunker):
                     name="(no heading)",
                     line=1,
                     content="\n".join(current_section),
+                ),
+            )
+
+        return chunks
+
+
+class VueChunker(BaseChunker):
+    """Chunks Vue Single File Components into their constituent blocks.
+
+    Intention is to put template, script, style (and other custom) blocks
+    into their own chunks.
+    See https://vuejs.org/api/sfc-spec
+    """
+
+    @staticmethod
+    def can_chunk(source_code: str, file_path: Path) -> bool:  # noqa: ARG004
+        return str(file_path).endswith(".vue")
+
+    def chunk_file(self) -> list[Chunk]:
+        # To preserve whitespace, we wrap the source code in a <pre> tag.
+        # Without this, BeautifulSoup will strip/fiddle whitespace.
+        # See https://stackoverflow.com/a/33788712
+        soup_with_pre = BeautifulSoup(
+            "<pre>" + self.source_code + "</pre>",
+            "html.parser",
+        )
+        soup_within_pre = soup_with_pre.pre
+        chunks: list[Chunk] = []
+
+        # Find all top-level blocks. These are typcially template, script, style,
+        # plus any custom blocks.
+        top_level_elements = soup_within_pre.find_all(recursive=False)
+        for element in top_level_elements:
+            chunks.append(
+                Chunk(
+                    category=ChunkCategory.other,
+                    name=element.name,
+                    content=str(element),
+                    line=element.sourceline,
+                ),
+            )
+
+        # Get content not in any tag, aggressively stripping whitespace.
+        # I'm not sure if it's actually valid to have content outside a <something>
+        # tag but whatever doesn't hurt to grab it.
+        outer_content_items: list[str] = []
+        for outer_content_item in soup_within_pre.find_all(string=True, recursive=False):
+            if outer_content_item.strip():
+                outer_content_items.append(str(outer_content_item).strip())
+        if outer_content_items:
+            chunks.append(
+                Chunk(
+                    category=ChunkCategory.module_level,
+                    name="outer_content",
+                    content="\n".join(outer_content_items),
+                    line=None,
                 ),
             )
 

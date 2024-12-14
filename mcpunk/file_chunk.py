@@ -1,5 +1,6 @@
 import enum
 import logging
+from hashlib import sha256
 from typing import Literal, assert_never, get_args
 
 from pydantic import (
@@ -35,6 +36,19 @@ class Chunk(BaseModel):
     name: str = Field(description="`my_function` or `MyClass` or `# My Section`")
     line: int | None = Field(description="Line within file where it starts. First line is 1.")
     content: str = Field(description="Content of the chunk")
+
+    @property  # Consider caching
+    def id_(self) -> str:
+        """Generate a (probably) unique ID based on content, name, line, and category.
+
+        This approach means that the ID will stay the same even if the chunk is recreated
+        (e.g. as opposed to a totally random ID).
+        There's chance of ids being duplicated, especially across files.
+        The id includes the chunk name, which makes debugging and monitoring of tool
+        requests far nicer.
+        """
+        components = [self.content, self.name, str(self.line), str(self.category)]
+        return self.name + "_" + sha256("".join(components).encode()).hexdigest()[:10]
 
     def matches_filter(
         self,

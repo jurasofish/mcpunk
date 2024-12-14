@@ -23,9 +23,6 @@ from mcpunk.file_breakdown import (
 from mcpunk.file_breakdown import (
     Project as FileBreakdownProject,
 )
-from mcpunk.file_chunk import (
-    Chunk,
-)
 from mcpunk.git_analysis import get_recent_branches
 from mcpunk.util import create_file_tree, log_inputs
 
@@ -53,14 +50,6 @@ class ToolProject(BaseModel):
     """
 
     chunk_project: FileBreakdownProject
-
-    # These are the chunks that the LLM has been told about through tool
-    # requests. If an LLM tries to get info about a chunk that isn't in here
-    # it means it's just guessing - which is likes to do. So you might want to
-    # just say "hey buddy try asking about what chunks are available first".
-    # TODO: make this redundant, perhaps force chunks to be fetched by a random-ish
-    #       id which can only be known by listing chunks.
-    llm_known_chunks: list[Chunk] = []
 
     @property
     def root(self) -> pathlib.Path:
@@ -325,41 +314,14 @@ def list_all_chunk_meta_in_file_where_contents_match(
 @log_inputs
 def chunk_details(
     proj_file: ProjectFile,
-    chunk_name: Annotated[
-        str,
-        Field(
-            description=(
-                "You must already know the chunk name, do not guess it. It can be found "
-                f"via the {list_all_chunk_meta_in_file.__name__} tool. The chunk "
-                f"name provided here must match the chunk name in the "
-                f"{list_all_chunk_meta_in_file_where_contents_match.__name__} tool exactly."
-            ),
-        ),
-    ],
+    chunk_id: str,
 ) -> ToolResponse:
-    """Full contents of a specific chunk.
-
-    To use this you must first know the file and chunk name, which you can find from
-    tools like `list_chunks_in_file`.
-    """
+    """Full contents of a specific chunk."""
     target_file = proj_file.file
-    chunks = [chunk for chunk in target_file.chunks if chunk.name == chunk_name]
+    chunks = [chunk for chunk in target_file.chunks if chunk.id_ == chunk_id]
     if len(chunks) == 0:
         return MCPToolOutput(
-            text=(
-                f"No matching chunks. Please use the {list_all_chunk_meta_in_file.__name__} tool "
-                f"to find available chunks."
-            ),
-        ).render()
-
-    chunks = [chunk for chunk in chunks if chunk in proj_file.project.llm_known_chunks]
-    if len(chunks) == 0:
-        return MCPToolOutput(
-            text=(
-                f"Chunk(s) found, but it's not a chunk that has been listed through the "
-                f"{list_all_chunk_meta_in_file.__name__} tool. use that tool to list the chunk "
-                f"and ensure you are aware of it before asking for its details. "
-            ),
+            text=("No matching chunks. Please use other tools to find available chunks."),
         ).render()
     return MCPToolOutput(jsonable=[x.content for x in chunks]).render()
 
@@ -505,13 +467,18 @@ def _list_chunks_in_file(
 ) -> MCPToolOutput:
     target_file = proj_file.file
     chunks = [x for x in target_file.chunks if x.matches_filter(filter_, filter_on)]
-    proj_file.project.llm_known_chunks.extend(chunks)
-
-    resp_data = [{"n": x.name, "t": x.category} for x in chunks]
-
+    resp_data = [
+        {
+            "n": x.name,
+            "t": x.category,
+            "id": x.id_,
+            "chars": len(x.content),
+        }
+        for x in chunks
+    ]
     return MCPToolOutput(
         jsonable=[
-            f"{len(chunks)} of {len(target_file.chunks)}",
+            f"({len(chunks)} of {len(target_file.chunks)} chunks)",
             resp_data,
         ],
     )
@@ -561,7 +528,7 @@ if __name__ == "__main__":
             project_name="mcpunk",
             rel_path=pathlib.Path("README.md"),
         ),
-        chunk_name="Development",
+        chunk_id="xxx",
     )
     # f = [
     #     x

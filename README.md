@@ -225,10 +225,6 @@ MCPunk is at a minimum usable state right now.
     considerations.
 - For small (say, <500 chars) files maybe just unconditionally put them as one
   chunk, not much point breaking them up.
-- Switch up chunk fetching, like let's say
-  - each chunk has a randomly generated id that's used to get its details
-    (makes llm_known_chunks redundant 💩)
-  - When listing chunks in a file, chunk id, number of  characters in chunk content
 - Include module-level comments when extracting python module-level statements.
 - Caching of a project, so it doesn't need to re-parse all files every time you
   restart MCP client

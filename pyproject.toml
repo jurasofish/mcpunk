@@ -133,6 +133,7 @@ lint.ignore = [
     "SIM114",  #  if-with-same-arms
     "FIX004",  #  Line contains HACK, consider resolving the issue
     "G003",  #  Logging statement uses `+`
+    "PERF401",  #  Use `list.extend` to create a transformed list
 ]
 
 lint.unfixable = [

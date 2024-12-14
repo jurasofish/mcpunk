@@ -18,11 +18,18 @@ class ChunkCategory(enum.StrEnum):
     markdown_section = "markdown section"
     imports = "imports"
     module_level = "module_level"
+    whole_file = "whole_file"
 
 
 # Seems if you annotate a FastMCP tool function with an enum it totally
 # crashes claude desktop. So define an equivalent Literal type here.
-ChunkCategoryLiteral = Literal["callable", "markdown section", "imports", "module_level"]
+ChunkCategoryLiteral = Literal[
+    "callable",
+    "markdown section",
+    "imports",
+    "module_level",
+    "whole_file",
+]
 assert set(get_args(ChunkCategoryLiteral)) == set(ChunkCategory.__members__.values())
 
 

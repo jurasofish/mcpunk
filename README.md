@@ -223,8 +223,6 @@ MCPunk is at a minimum usable state right now.
     copy of the old one and start from scratch.
   - If db needs stay so simple, just switch to JSON file on disk. Multithread/process
     considerations.
-- For small (say, <500 chars) files maybe just unconditionally put them as one
-  chunk, not much point breaking them up.
 - Include module-level comments when extracting python module-level statements.
 - Caching of a project, so it doesn't need to re-parse all files every time you
   restart MCP client

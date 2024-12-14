@@ -32,6 +32,24 @@ class BaseChunker:
         raise NotImplementedError
 
 
+class WholeFileChunker(BaseChunker):
+    """Unconditionally chunk the whole file in a single chunk."""
+
+    @staticmethod
+    def can_chunk(source_code: str, file_path: Path) -> bool:  # noqa: ARG004
+        return True
+
+    def chunk_file(self) -> list[Chunk]:
+        return [
+            Chunk(
+                category=ChunkCategory.whole_file,
+                name="<whole_file>",
+                content=self.source_code,
+                line=1,
+            ),
+        ]
+
+
 class PythonChunker(BaseChunker):
     @staticmethod
     def can_chunk(source_code: str, file_path: Path) -> bool:  # noqa: ARG004

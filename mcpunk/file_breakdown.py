@@ -8,9 +8,18 @@ from pydantic import (
 )
 
 from mcpunk.file_chunk import Chunk, ChunkCategory
-from mcpunk.file_chunkers import BaseChunker, MarkdownChunker, PythonChunker
+from mcpunk.file_chunkers import (
+    BaseChunker,
+    MarkdownChunker,
+    PythonChunker,
+    WholeFileChunker,
+)
 
-ALL_CHUNKERS: list[type[BaseChunker]] = [PythonChunker, MarkdownChunker]
+ALL_CHUNKERS: list[type[BaseChunker]] = [
+    PythonChunker,
+    MarkdownChunker,
+    WholeFileChunker,
+]
 
 logger = logging.getLogger(__name__)
 

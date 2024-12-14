@@ -195,27 +195,10 @@ class MCPToolOutput(BaseModel):
         return final_out
 
 
-@mcp.prompt()
-@log_inputs
-def dummy_prompt() -> str:
-    return "Hey"
-
-
-@mcp.resource("dummy://dummy")
-@log_inputs
-def dummy_resource() -> str:
-    return "Hi"
-
-
 @mcp.tool()
 @log_inputs
-def get_a_joke(
-    animal: Annotated[
-        str,
-        Field(max_length=20),
-    ],
-) -> ToolResponse:
-    """Get a really funny joke!"""
+def get_a_joke(animal: Annotated[str, Field(max_length=20)]) -> ToolResponse:
+    """Get a really funny joke! For testing :)"""
     return MCPToolOutput(
         text=(
             f"Why did the {animal} cross the road?\n"

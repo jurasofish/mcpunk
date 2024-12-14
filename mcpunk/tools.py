@@ -217,11 +217,17 @@ def configure_project(
     Each file in the project is split into 'chunks' - logical sections like functions,
     classes, markdown sections, and import blocks.
 
-    After configuring, use these common workflows:
-    1. Find function definitions:
-       find_files_by_chunk_name -> find_matching_chunks_in_file -> chunk_details
-    2. Find usages/implementations:
-       find_files_by_chunk_content -> find_matching_chunks_in_file -> chunk_details
+    After configuring, a common workflow is:
+    1. list_all_files_in_project to get an overview of the project (with
+       an initial limit on the depth of the search)
+    2. Find files by function/class definition:
+       find_files_by_chunk_content(... ["def my_funk"])
+    3. Find files by function/class usage:
+       find_files_by_chunk_content(... ["my_funk"])
+    4. Determine which chunks in the found files are relevant:
+        find_matching_chunks_in_file(...)
+    5. Get details about the chunks:
+       chunk_details(...)
 
     Use ~ (tilde) literally if the user specifies it in paths.
     """
@@ -232,26 +238,36 @@ def configure_project(
     PROJECTS[project_name] = project
     return MCPToolOutput(
         text=(
-            f"Project {path} configured with {len(project.chunk_project.files)} files. "
-            f"Files are split into 'chunks' - logical sections like:\n"
-            f"- Functions (e.g. 'def my_function')\n"
-            f"- Classes (e.g. 'class MyClass')\n"
-            f"- Markdown sections (e.g. '# Section')\n"
-            f"- Import blocks\n"
-            f"Common workflows:\n"
-            f"1. Find function definitions: "
-            f"find_files_by_chunk_name -> find_matching_chunks_in_file -> chunk_details\n"
-            f"2. Find function uses: "
-            f"find_files_by_chunk_content -> find_matching_chunks_in_file -> chunk_details\n"
-            f"Do not immediately list files or otherwise use the project "
-            f"unless explicitly told to do so."
+            textwrap.dedent(f"""\
+            Project {path} configured with {len(project.chunk_project.files)} files.
+            Files are split into 'chunks' - logical sections like:
+            - Functions (e.g. 'def my_function')
+            - Classes (e.g. 'class MyClass')
+            - Markdown sections (e.g. '# Section')
+            - Import blocks
+
+            After configuring, a common workflow is:
+            1. list_all_files_in_project to get an overview of the project (with
+               an initial limit on the depth of the search)
+            2. Find files by function/class definition:
+               find_files_by_chunk_content(... ["def my_funk"])
+            3. Find files by function/class usage:
+               find_files_by_chunk_content(... ["my_funk"])
+            4. Determine which chunks in the found files are relevant:
+                find_matching_chunks_in_file(...)
+            5. Get details about the chunks:
+               chunk_details(...)
+
+            Do not immediately list files or otherwise use the project
+            unless explicitly told to do so.
+        """)
         ),
     ).render()
 
 
 @mcp.tool()
 @log_inputs
-def list_files_in_project(
+def list_all_files_in_project(
     project_name: str,
     path_filter: FilterType = None,
     limit_depth_from_root: Annotated[
@@ -266,6 +282,9 @@ def list_files_in_project(
     ] = None,
 ) -> ToolResponse:
     """List all files in a project, returning a file tree.
+
+    This is useful for getting an overview of the project, or specific
+    subdirectories of the project.
 
     A project may have many files, so you are suggested
     to start with a depth limit to get an overview, and then continue increasing
@@ -283,33 +302,6 @@ def list_files_in_project(
         return MCPToolOutput(text="No paths").render()
     else:
         return MCPToolOutput(jsonable=data).render()
-
-
-@mcp.tool()
-@log_inputs
-def find_files_by_chunk_name(
-    project_name: str,
-    chunk_name_filter: FilterType,
-) -> ToolResponse:
-    """Step 1: Find files containing chunks with matching names.
-
-    Returns file tree only showing which files contain matches.
-    You must use find_matching_chunks_in_file on each relevant file
-    to see the actual matches.
-
-    Example workflow:
-    1. Find files:
-       files = find_files_by_chunk_name(project, ["MyClass"])
-    2. For each file, find actual matches:
-       matches = find_matching_chunks_in_file(file, ["MyClass"])
-    3. Get content:
-       content = chunk_details(file, match_id)
-
-    Name search only matches chunk names (e.g. function/class names),
-    not their contents. Use find_files_by_chunk_content to search
-    implementation details.
-    """
-    return _filter_files_by_chunk(project_name, chunk_name_filter, "name").render()
 
 
 @mcp.tool()
@@ -343,8 +335,14 @@ def find_matching_chunks_in_file(
 ) -> ToolResponse:
     """Step 2: Find the actual matching chunks in a specific file.
 
-    Required after find_files_by_chunk_* to see matches, as those tools
-    only show which files contain matches.
+    Required after find_files_by_chunk_content or list_all_files_in_project to see
+    matches, as those tools only show files, not their contents.
+
+    This can be used for things like:
+      - Finding all chunks in a file that make reference to a specific function
+        (e.g. find_matching_chunks_in_file(..., ["my_funk"])
+      - Finding a chunk where a specific function is defined
+        (e.g. find_matching_chunks_in_file(..., ["def my_funk"])
 
     Returns array of {n: name, t: type, id: identifier, chars: length}
     """
@@ -391,7 +389,7 @@ def diff_with_ref(
     project_name: str,
     ref: Annotated[str, Field(max_length=100)],
 ) -> ToolResponse:
-    """Return a summary of the diff between HEAD the given ref.
+    """Return a summary of the diff between HEAD and the given ref.
 
     You probably want the ref  to be the 'base' branch like develop or main, off which
     PRs are made - and you can likely determine this by viewing the most recently

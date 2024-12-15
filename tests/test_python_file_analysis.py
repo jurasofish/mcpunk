@@ -1,5 +1,3 @@
-import textwrap
-
 import deepdiff
 import pytest
 
@@ -36,27 +34,27 @@ def assert_callables_equal(actual: list[Callable], expected: list[Callable]) -> 
 
 
 def test_empty_source_code() -> None:
-    source = textwrap.dedent("""\
+    source = """\
 
 
-    """)
+    """
     actual = Callable.from_source_code(source)
     expected: list[Callable] = []
     assert_callables_equal(actual, expected)
 
 
 def test_no_function_definitions() -> None:
-    source = textwrap.dedent("""\
+    source = """\
 x = 1
 y = x + 2
-    """)
+    """
     actual = Callable.from_source_code(source)
     expected: list[Callable] = []
     assert_callables_equal(actual, expected)
 
 
 def test_basic_function_def() -> None:
-    source = textwrap.dedent("""\
+    source = """\
 def my_func(x):
     return x
 my_func("hello")
@@ -66,7 +64,7 @@ def empty_func():
 
 def empty_func_ii():
     '''some docstring'''
-    """)
+    """
     actual = Callable.from_source_code(source)
     expected = [
         Callable(
@@ -101,12 +99,12 @@ def empty_func_ii():
 
 
 def test_function_def_with_callable() -> None:
-    source = textwrap.dedent("""\
+    source = """\
 @wrapper()
 def my_func(x):
     return x
 my_func("hello")
-    """)
+    """
     actual = Callable.from_source_code(source)
     expected = [
         Callable(
@@ -124,10 +122,10 @@ my_func("hello")
 
 def test_simple_class() -> None:
     """Test basic class definition without methods."""
-    source = textwrap.dedent("""\
+    source = """\
 class SimpleClass:
     pass
-    """)
+    """
     actual = Callable.from_source_code(source)
     expected = [
         Callable(
@@ -145,10 +143,10 @@ class SimpleClass:
 
 def test_async_function() -> None:
     """Test async function definition."""
-    source = textwrap.dedent("""\
+    source = """\
 async def fetch_data():
     return "data"
-    """)
+    """
     actual = Callable.from_source_code(source)
     expected = [
         Callable(
@@ -166,12 +164,12 @@ async def fetch_data():
 
 def test_nested_function() -> None:
     """Test nested function definition."""
-    source = textwrap.dedent("""\
+    source = """\
 def outer():
     def inner():
         return True
     return inner
-    """)
+    """
     actual = Callable.from_source_code(source)
     expected = [
         Callable(
@@ -198,11 +196,11 @@ def outer():
 
 def test_class_with_method() -> None:
     """Test class with a single method."""
-    source = textwrap.dedent("""\
+    source = """\
 class MyClass:
     def my_method(self):
         return 42
-    """)
+    """
     actual = Callable.from_source_code(source)
     expected = [
         Callable(
@@ -229,7 +227,7 @@ class MyClass:
 
 def test_nested_classes() -> None:
     """Test nested class definitions with methods."""
-    source = textwrap.dedent("""\
+    source = """\
 class Outer:
     class Inner:
         def inner_method(self):
@@ -242,7 +240,7 @@ class Outer:
 
     def outer_method(self):
         return "outer"
-    """)
+    """
     actual = Callable.from_source_code(source)
     expected = [
         Callable(
@@ -328,7 +326,7 @@ class Outer:
 
 def test_multiline_function_definition() -> None:
     """Test function definitions that span multiple lines."""
-    source = textwrap.dedent("""\
+    source = """\
 def long_function_name(
     param1: str,
     param2: int,
@@ -342,7 +340,7 @@ def long_function_name(
     ],
 ) -> None:
     return None
-    """)
+    """
     actual = Callable.from_source_code(source)
     expected = [
         Callable(
@@ -372,7 +370,7 @@ def long_function_name(
 
 def test_multiline_class_definition() -> None:
     """Test class definitions that span multiple lines."""
-    source = textwrap.dedent("""\
+    source = """\
 class ComplexClass(
     BaseClass,
     Generic[
@@ -390,7 +388,7 @@ class ComplexClass(
     ) -> None:
         self.param1 = param1
         self.param2 = param2
-    """)
+    """
     actual = Callable.from_source_code(source)
     expected = [
         Callable(
@@ -439,7 +437,7 @@ class ComplexClass(
 
 def test_multiline_decorators() -> None:
     """Test function with multi-line decorators."""
-    source = textwrap.dedent("""\
+    source = """\
 @decorator1(
     param1="value1",
     param2="value2",
@@ -455,7 +453,7 @@ def decorated_function(
     y: str,
 ) -> bool:
     return True
-    """)
+    """
     actual = Callable.from_source_code(source)
     expected = [
         Callable(
@@ -487,7 +485,7 @@ def decorated_function(
 
 def test_unicode_names() -> None:
     """Test handling of Unicode characters in function and class names."""
-    source = textwrap.dedent("""\
+    source = """\
 def 你好_world():
     pass
 
@@ -497,7 +495,7 @@ class お早う_class:
 
 def λ_function():
     yield from range(10)
-    """)
+    """
     actual = Callable.from_source_code(source)
     expected = [
         Callable(
@@ -542,7 +540,7 @@ def λ_function():
 
 def test_conditional_definitions() -> None:
     """Test functions and classes defined inside conditional blocks."""
-    source = textwrap.dedent("""\
+    source = """\
 if True:
     def true_func():
         pass
@@ -559,7 +557,7 @@ except Exception:
 finally:
     def finally_func():
         return True
-    """)
+    """
     actual = Callable.from_source_code(source)
     expected = [
         Callable(
@@ -613,7 +611,7 @@ finally:
 
 def test_property_and_special_methods() -> None:
     """Test property decorators and special methods."""
-    source = textwrap.dedent("""\
+    source = """\
 class DataClass:
     @property
     def value(self) -> int:
@@ -636,7 +634,7 @@ class DataClass:
 
     async def __aiter__(self):
         yield self._value
-    """)
+    """
     actual = Callable.from_source_code(source)
     expected = [
         Callable(
@@ -748,7 +746,7 @@ from ..parent import something as other
 
 
 def test_extract_mixed_scope_imports() -> None:
-    source = """
+    source = """\
 import os  # module level
 
 def func1():

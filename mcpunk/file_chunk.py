@@ -36,10 +36,7 @@ assert set(get_args(ChunkCategoryLiteral)) == set(ChunkCategory.__members__.valu
 
 
 class Chunk(BaseModel):
-    """A chunk of a file, e.g. a function or a markdown section.
-
-    TODO: discuss what a chunk is a touch more.
-    """
+    """A chunk of a file, e.g. a function or a markdown section."""
 
     category: ChunkCategory = Field(description="`function`, `markdown section`, `imports`")
     name: str = Field(description="`my_function` or `MyClass` or `# My Section`")

@@ -53,18 +53,32 @@ Next, start claude desktop and you should see the tools available after a small 
 Next, ask it to set up a project like "hey pal can you set up the ~/git/mcpunk project".
 Then start asking away, like "how is the tasks database schema structured?"
 
-# Key Concepts
+# Roaming RAG
 
-#### Roaming RAG
-
-TODO discussion but for the moment see
+See
 
 - https://arcturus-labs.com/blog/2024/11/21/roaming-rag--make-_the-model_-find-the-answers/
 - https://simonwillison.net/2024/Dec/6/roaming-rag/
 
-#### Chunks
+The gist of roaming RAG is
 
-TODO discuss a whole lot more.
+1. Break down content (a codebase, pdf files, whatever) into "chunks".
+   Each chunk is a "small" logical item like a function, a section in
+   a markdown document, or all imports in a code file.
+2. Provide the LLM tools to search chunks. MCPunk does this by providing tools
+   to search for files containing chunks with specific text, and to list the
+   full contents of a specific chunk.
+
+Compared to more traditional "vector search" RAG:
+
+- The LLM has to drill down to find chunks, and naturally is aware of their
+  broader context (like what file they're in)
+- Chunks should always be coherent. Like a full function.
+- You can see exactly what the LLM is searching for, and it's generally
+  obvious if it's searching poorly and you can help it out by suggesting
+  improved search terms.
+
+#### Chunks
 
 A chunk is a subsection of a file. For example,
 
@@ -73,9 +87,8 @@ A chunk is a subsection of a file. For example,
 - All the imports from a Python file
 - The diff of one file out of a multi-file diff
 
-Chunks are created from a file by [chunkers](mcpunk/file_chunkers.py)
-(currently only Python and Markdown but plans to add more builtin ones
-plus [customisable ones](#roadmap))
+Chunks are created from a file by [chunkers](mcpunk/file_chunkers.py),
+and MCPunk comes with a handful built in.
 
 When a project is set up in MCPunk, it goes through all files and applies
 the first matching chunker to it. The LLM can then use tools to (1) query for files
@@ -85,6 +98,25 @@ file, and (3) fetch the full contents of a chunk.
 This basic foundation enables claude to effectively navigate relatively large
 codebases by starting with a broad search for relevant files and narrowing in
 on relevant areas.
+
+#### Custom Chunkers
+
+Each type of file (e.g. Python vs C) needs a custom chunker.
+MCPunk comes with some [built in](mcpunk/file_chunkers.py).
+If no specific chunker matches a file, a default chunker that just slaps
+the whole file into one chunk is used.
+
+The current suggested way to add chunks is to fork this project and add them,
+and run MCPunk per [Development](#development).
+To add a chunker
+
+- Add it in [file_chunkers.py](mcpunk/file_chunkers.py), inheriting from `BaseChunker`
+- Add it to `ALL_CHUNKERS` in [file_breakdown.py](mcpunk/file_breakdown.py)
+
+It would be possible to implement some kind of plugin system for modules
+to advertise that they have custom chunkers for MCPunk to use, like pytest's
+plugin system, but there are currently no plans to implement this (unless
+someone wants to do it).
 
 # Common Usage Patterns
 
@@ -190,7 +222,9 @@ In this case the LLM should recognise this via imports.
 
 # Configuration
 
-TODO but through env vars see [settings.py](mcpunk/settings.py)
+Various things can be configured via environment variables.
+For available options, see [settings.py](mcpunk/settings.py) - these are loaded
+from env vars via [Pydantic Settings](https://github.com/pydantic/pydantic-settings).
 
 # Roadmap
 
@@ -198,7 +232,6 @@ MCPunk is at a minimum usable state right now.
 
 **Critical Planned functionality**
 
-- Ability for users to provide custom code to perform chunking (critical)
 - Add a bunch of prompts to help with using MCPunk. Without real "explain how to make
   a pancake to an alien"-type prompts things do fall a little flat.
 
@@ -225,10 +258,13 @@ MCPunk is at a minimum usable state right now.
     considerations.
 - Include module-level comments when extracting python module-level statements.
 - Caching of a project, so it doesn't need to re-parse all files every time you
-  restart MCP client
+  restart MCP client. This may be tricky as changes to the code in a chunker
+  will make cache invalid.
 - Handle changed files sensibly, so you don't need to restart MCP client
   and re-add project on any file changes
 - Ability to edit files - why not? Can do it like aider where LLM produces a diff.
+- Ability for users to provide custom code to perform chunking, perhaps
+  similar to [pytest plugins](https://docs.pytest.org/en/stable/how-to/writing_plugins.html#making-your-plugin-installable-by-others)
 
 **Just ideas**
 
@@ -241,12 +277,10 @@ MCPunk is at a minimum usable state right now.
 
 # Development
 
-Largely still TODO this section
-
 see [run_mcp_server.py](mcpunk/run_mcp_server.py).
 
 If you set up claude desktop like below then you can restart it to see latest
-changes as you work on MCPunk
+changes as you work on MCPunk from your local version of the repo.
 
 ```json
 {
@@ -263,3 +297,7 @@ changes as you work on MCPunk
   }
 }
 ```
+
+#### Testing, Linting, CI
+
+See the [Makefile](Makefile) and github actions workflows.

@@ -385,7 +385,7 @@ wheels = [
 
 [[package]]
 name = "mcpunk"
-version = "0.3.1.dev8+gcd916e9.d20241214"
+version = "0.4.1.dev6+g88e4718.d20241216"
 source = { editable = "." }
 dependencies = [
     { name = "asttokens" },
@@ -398,6 +398,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "sqlalchemy" },
     { name = "tzlocal" },
+    { name = "unidiff" },
 ]
 
 [package.optional-dependencies]
@@ -428,6 +429,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.7.3" },
     { name = "sqlalchemy", specifier = ">=2.0.36" },
     { name = "tzlocal", specifier = ">=5.2" },
+    { name = "unidiff", specifier = ">=0.7.5" },
 ]
 
 [[package]]
@@ -926,6 +928,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/04/d3/c19d65ae67636fe63953b20c2e4a8ced4497ea232c43ff8d01db16de8dc0/tzlocal-5.2.tar.gz", hash = "sha256:8d399205578f1a9342816409cc1e46a93ebd5755e39ea2d85334bea911bf0e6e", size = 30201 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/97/3f/c4c51c55ff8487f2e6d0e618dba917e3c3ee2caae6cf0fbb59c9b1876f2e/tzlocal-5.2-py3-none-any.whl", hash = "sha256:49816ef2fe65ea8ac19d19aa7a1ae0551c834303d5014c6d5a62e4cbda8047b8", size = 17859 },
+]
+
+[[package]]
+name = "unidiff"
+version = "0.7.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a3/48/81be0ac96e423a877754153699731ef439fd7b80b4c8b5425c94ed079ebd/unidiff-0.7.5.tar.gz", hash = "sha256:2e5f0162052248946b9f0970a40e9e124236bf86c82b70821143a6fc1dea2574", size = 20931 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8a/54/57c411a6e8f7bd7848c8b66e4dcaffa586bf4c02e63f2280db0327a4e6eb/unidiff-0.7.5-py2.py3-none-any.whl", hash = "sha256:c93bf2265cc1ba2a520e415ab05da587370bc2a3ae9e0414329f54f0c2fc09e8", size = 14386 },
 ]
 
 [[package]]

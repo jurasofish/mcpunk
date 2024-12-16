@@ -17,6 +17,7 @@ dependencies = [
     "sqlalchemy>=2.0.36",
     "pre-commit>=4.0.1",
     "beautifulsoup4>=4.12.3",
+    "unidiff>=0.7.5",
 ]
 
 [project.scripts]

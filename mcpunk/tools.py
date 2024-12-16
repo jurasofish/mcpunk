@@ -293,8 +293,7 @@ def list_all_files_in_project(
     project = _get_project_or_error(project_name)
     data = create_file_tree(
         project_root=project.root,
-        paths={x.abs_path for x in project.chunk_project.files},
-        expand_parent_directories=True,
+        file_paths={x.abs_path for x in project.chunk_project.files},
         limit_depth_from_root=limit_depth_from_root,
         filter_=path_filter,
     )
@@ -540,7 +539,7 @@ def _filter_files_by_chunk(
     for file in project.chunk_project.files:
         if any(c.matches_filter(filter_, filter_on) for c in file.chunks):
             matching_files.add(file.abs_path)
-    data = create_file_tree(project_root=project.root, paths=matching_files)
+    data = create_file_tree(project_root=project.root, file_paths=matching_files)
     if data is None:
         return MCPToolOutput(text="No files found")
     return MCPToolOutput(jsonable=data)

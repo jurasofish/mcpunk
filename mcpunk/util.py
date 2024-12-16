@@ -56,8 +56,7 @@ def log_inputs(func: Callable[P, R]) -> Callable[P, R]:
 def create_file_tree(
     *,
     project_root: Path,
-    paths: set[Path],
-    expand_parent_directories: bool = True,
+    file_paths: set[Path],
     limit_depth_from_root: int | None = None,
     filter_: None | list[str] = None,
 ) -> dict[str, Any] | None:
@@ -69,10 +68,7 @@ def create_file_tree(
 
     Args:
         project_root: The root directory of the project.
-        paths: Paths to **potentially** include in the tree.
-        expand_parent_directories: If true, all directories between each file
-            and the project root will be included in the tree. This avoids
-            skipping directories that contain only files.
+        file_paths: Paths to **potentially** include in the tree.
         limit_depth_from_root: If provided, the tree will be truncated at this
             depth from the root directory. TODO: examples of different values.
         filter_: If provided, only paths that match the filter will be included
@@ -86,40 +82,33 @@ def create_file_tree(
         - The structure preserves the hierarchy of directories
         - Or None if no paths were included in the tree
     """
-    paths = deepcopy(paths)  # Avoid mutation shenanigans
+    file_paths = deepcopy(file_paths)  # Avoid mutation shenanigans
     project_root = project_root.absolute()
 
     # Make sure empty dirs aren't ignored
-    if expand_parent_directories:
-        new_dir_paths = set()
-        for file_path in paths:
-            for parent_path in file_path.parents:
-                if parent_path == project_root:
-                    break
-                new_dir_paths.add(parent_path)
-        paths = paths | new_dir_paths
+    dir_paths = set()
+    for file_path in file_paths:
+        for parent_path in file_path.parents:
+            if parent_path == project_root:
+                break
+            dir_paths.add(parent_path)
 
-    filtered_paths = {
-        x
-        for x in paths
-        if matches_filter(filter_, str(x))
-        and (
+    def _include_path(path_: Path) -> bool:
+        return matches_filter(filter_, str(path_)) and (
             limit_depth_from_root is None
-            or _get_depth_from_root(project_root, x) <= limit_depth_from_root
+            or _get_depth_from_root(project_root, path_) <= limit_depth_from_root
         )
-    }
-    filtered_dir_paths = sorted(
-        [x for x in filtered_paths if x.is_dir()],
-        key=lambda x: len(x.parts),
-    )
-    filtered_file_paths = sorted(
-        [x for x in filtered_paths if x.is_file()],
-        key=lambda x: len(x.parts),
-    )
+
+    dir_paths = {x for x in dir_paths if _include_path(x)}
+    file_paths = {x for x in file_paths if _include_path(x)}
+
+    sorted_dir_paths = sorted(dir_paths, key=lambda x: len(x.parts))
+    sorted_file_paths = sorted(file_paths, key=lambda x: len(x.parts))
+
     default_data = {"root": {"f": "..."}}
     data: dict[str, Any] = deepcopy({"root": {"f": "..."}})
 
-    for dir_path in filtered_dir_paths:
+    for dir_path in sorted_dir_paths:
         # print(dir_path.relative_to(project_root))
         rel_parts = dir_path.relative_to(project_root).parts
         parent = data["root"]
@@ -129,7 +118,7 @@ def create_file_tree(
             if rel_part not in parent:
                 parent[rel_part] = {"f": "..."}
             parent = parent[rel_part]
-    for file_path in filtered_file_paths:
+    for file_path in sorted_file_paths:
         rel_parts = file_path.relative_to(project_root).parts
         parent = data["root"]
         if len(rel_parts) == 0:

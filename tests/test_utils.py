@@ -26,42 +26,36 @@ def test_log_inputs(caplog: pytest.LogCaptureFixture) -> None:
 
 def test_create_file_tree(tmp_path: Path) -> None:
     """Test create_file_tree generates correct tree structure."""
-    # Set up test files
-    (tmp_path / "dir1").mkdir()
-    (tmp_path / "dir1/file1.txt").touch()
-    (tmp_path / "dir1/subdir").mkdir()
-    (tmp_path / "dir1/subdir/file2.txt").touch()
-    (tmp_path / "file3.txt").touch()
-    (tmp_path / "dir2/dir4/dir5").mkdir(parents=True)
-
     paths = {
-        tmp_path / "dir1",
         tmp_path / "dir1/file1.txt",
-        tmp_path / "dir1/subdir",
         tmp_path / "dir1/subdir/file2.txt",
         tmp_path / "file3.txt",
-        tmp_path / "dir2/dir4/dir5",
+        tmp_path / "deep/nested/dir/boo.txt",
     }
 
     result = create_file_tree(
         project_root=tmp_path,
-        paths=paths,
+        file_paths=paths,
     )
 
     assert result == {
         "root": {
+            "deep": {
+                "f": "...",
+                "nested": {
+                    "dir": {
+                        "f": [
+                            "boo.txt",
+                        ],
+                    },
+                    "f": "...",
+                },
+            },
             "dir1": {
                 "f": ["file1.txt"],
                 "subdir": {
                     "f": ["file2.txt"],
                 },
-            },
-            "dir2": {
-                "dir4": {
-                    "dir5": {"f": "..."},
-                    "f": "...",
-                },
-                "f": "...",
             },
             "f": ["file3.txt"],
         },
@@ -80,7 +74,7 @@ def test_create_file_tree_with_filter(tmp_path: Path) -> None:
         tmp_path / "data.txt",
     }
 
-    result = create_file_tree(project_root=tmp_path, paths=paths, filter_=[".py"])
+    result = create_file_tree(project_root=tmp_path, file_paths=paths, filter_=[".py"])
     assert result == {
         "root": {
             "f": ["main.py", "test.py"],
@@ -90,24 +84,16 @@ def test_create_file_tree_with_filter(tmp_path: Path) -> None:
 
 def test_create_file_tree_depth_limit(tmp_path: Path) -> None:
     """Test create_file_tree with depth limit."""
-    (tmp_path / "dir1/dir2/dir3").mkdir(parents=True)
-    (tmp_path / "dir1/file1.txt").touch()
-    (tmp_path / "dir1/dir2/file2.txt").touch()
-    (tmp_path / "dir1/dir2/dir3/file3.txt").touch()
-
     paths = {
         tmp_path / p
         for p in [
-            "dir1",
             "dir1/file1.txt",
-            "dir1/dir2",
             "dir1/dir2/file2.txt",
-            "dir1/dir2/dir3",
             "dir1/dir2/dir3/file3.txt",
         ]
     }
 
-    result = create_file_tree(project_root=tmp_path, paths=paths, limit_depth_from_root=2)
+    result = create_file_tree(project_root=tmp_path, file_paths=paths, limit_depth_from_root=2)
 
     assert result == {
         "root": {

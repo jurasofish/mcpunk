@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from typing import Annotated, Any, Literal, Self
 
 import mcp.types as mcp_types
+import unidiff
 from fastmcp import FastMCP
 from git import Repo
 from pydantic import (
@@ -396,16 +397,23 @@ def diff_with_ref(
     """
     project = _get_project_or_error(project_name)
     repo = Repo(project.git_path)
-    # head = repo.head.commit
-    # compare_from = repo.commit(ref)
-    # diffs = compare_from.diff(head, create_patch=True)
-    # print(repo.git.diff(f"{ref}s...HEAD", ignore_blank_lines=True, ignore_space_at_eol=True))
     diff = repo.git.diff(
         f"{ref}...HEAD",
         ignore_blank_lines=True,
         ignore_space_at_eol=True,
-    )  # create_patch=True)
-    return MCPToolOutput(jsonable=diff, max_chars=50_000).render()
+    )
+    patch_set = unidiff.PatchSet(diff)
+
+    subdir = project.root / f"git_diffs/{ref}"
+    new_files: list[File] = []
+    for patch in patch_set:
+        patch_path = subdir / f"{patch.path}.patch"
+        patch_raw = str(patch)
+        new_file = File.from_file_contents(patch_raw, patch_path)
+        new_files.append(new_file)
+    project.chunk_project.add_files(new_files)
+
+    return MCPToolOutput(text="Diffs available under `git_diffs/` directory").render()
 
 
 @mcp.tool()

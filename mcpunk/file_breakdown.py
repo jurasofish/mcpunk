@@ -73,6 +73,13 @@ class Project(BaseModel):
     def git_repo(self) -> Repo:
         return _git_repo(self.root)
 
+    def add_files(self, new_files: list[File]) -> None:
+        new_paths = {file.abs_path for file in new_files}
+        keep_files = [file for file in self.files if file.abs_path not in new_paths]
+        keep_files.extend(new_files)
+        self.files.clear()
+        self.files.extend(keep_files)
+
     @classmethod
     def from_files(cls, root: Path, files: list[Path], max_workers: int | None = None) -> "Project":
         files_analysed: list[File] = []

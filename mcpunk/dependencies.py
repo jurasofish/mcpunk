@@ -60,7 +60,6 @@ class Dependencies(metaclass=Singleton):
             settings = self.settings()
             self._state.engine = create_engine(
                 f"sqlite:///{settings.db_path}?check_same_thread=true&timeout=10&uri=true",
-                echo=settings.db_echo,
             )
         return self._state.engine
 

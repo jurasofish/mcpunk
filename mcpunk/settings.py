@@ -9,9 +9,6 @@ class Settings(BaseSettings):
     # SQLite database path
     db_path: Path = Path("~/.mcpunk/db.sqlite").expanduser()
 
-    # Enable SQLAlchemy query logging
-    db_echo: bool = True
-
     enable_log_file: bool = True
     log_file: Path = Path("~/.mcpunk/mcpunk.log").expanduser()
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "FATAL", "CRITICAL"] = "DEBUG"

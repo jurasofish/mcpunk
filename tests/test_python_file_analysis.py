@@ -1,5 +1,5 @@
-import deepdiff
 import pytest
+from deepdiff import DeepDiff  # type: ignore[attr-defined]
 
 from mcpunk.python_file_analysis import Callable, extract_imports, extract_module_statements
 
@@ -26,10 +26,10 @@ def assert_callables_equal(actual: list[Callable], expected: list[Callable]) -> 
             if a != e:
                 print(f"Expected {i}: {e}")
                 print(f"Actual   {i}: {a}")
-                print(f"Diff {i}: {deepdiff.DeepDiff(a, e)}")
+                print(f"Diff {i}: {DeepDiff(a, e)}")
             else:
                 print(f"Pair {i} is equal")
-        # raise AssertionError(deepdiff.DeepDiff(actual_dicts, expected_dicts))
+        # raise AssertionError(DeepDiff(actual_dicts, expected_dicts))
     assert actual == expected
 
 

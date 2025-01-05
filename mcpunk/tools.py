@@ -11,6 +11,7 @@ from fastmcp import FastMCP
 from git import Repo
 from pydantic import (
     BaseModel,
+    ConfigDict,
     Field,
     model_validator,
 )
@@ -51,6 +52,8 @@ class ToolProject(BaseModel):
     """
 
     chunk_project: FileBreakdownProject
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @property
     def root(self) -> pathlib.Path:
@@ -252,7 +255,7 @@ def configure_project(
     path = root_path.expanduser().absolute()
     if project_name in PROJECTS:
         raise ValueError(f"Project {project_name} already exists")
-    project = ToolProject(chunk_project=FileBreakdownProject.from_root_dir(path))
+    project = ToolProject(chunk_project=FileBreakdownProject(root=path))
     PROJECTS[project_name] = project
     return MCPToolOutput(
         text=(

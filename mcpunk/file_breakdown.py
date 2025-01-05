@@ -27,10 +27,6 @@ ALL_CHUNKERS: list[type[BaseChunker]] = [
 logger = logging.getLogger(__name__)
 
 
-class NoGitRepoError(Exception):
-    pass
-
-
 class File(BaseModel):
     chunks: list[Chunk]
     abs_path: Path
@@ -65,19 +61,32 @@ class File(BaseModel):
         return [c for c in self.chunks if c.category == chunk_type]
 
 
-class Project(BaseModel):
-    root: Path
-    files: list[File]
+class Project:
+    def __init__(
+        self,
+        *,
+        root: Path,
+        max_workers: int | None = None,
+    ) -> None:
+        self.root = root
+        self.max_workers = max_workers
+        self.file_map: dict[Path, File] = {}
+        git_repo: Repo | None
+        if (root / ".git").exists():
+            git_repo = Repo(root / ".git")
+        else:
+            git_repo = None
+        self.git_repo = git_repo
+        self._init_from_root_dir(root)
 
     @property
-    def git_repo(self) -> Repo:
-        return _git_repo(self.root)
+    def files(self) -> list[File]:
+        return list(self.file_map.values())
 
-    @classmethod
-    def from_files(cls, root: Path, files: list[Path], max_workers: int | None = None) -> "Project":
+    def _load_files(self, files: list[Path]) -> None:
         files_analysed: list[File] = []
 
-        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
             # Submit all file analysis tasks
             future_to_file = {
                 executor.submit(_analyze_file, file_path): file_path for file_path in files
@@ -91,27 +100,16 @@ class Project(BaseModel):
                         files_analysed.append(result)
                 except Exception:
                     logger.exception(f"File {file_path} generated an exception")
+        for file in files_analysed:
+            self.file_map[file.abs_path] = file
 
-        project = Project(
-            root=root,
-            files=files_analysed,
-        )
-        return project
-
-    @classmethod
-    def from_root_dir(cls, root: Path, max_workers: int | None = None) -> "Project":
+    def _init_from_root_dir(self, root: Path) -> None:
         if not root.exists():
             raise ValueError(f"Root directory {root} does not exist")
 
-        repo: Repo | None
-        try:
-            repo = _git_repo(root)
-        except NoGitRepoError:
-            repo = None
-
         files: list[Path] = []
-        if repo is not None:
-            rel_paths = repo.git.ls_files().splitlines()
+        if self.git_repo is not None:
+            rel_paths = self.git_repo.git.ls_files().splitlines()
             files.extend(root / rel_path for rel_path in rel_paths)
         else:
             # Exclude specific top-level directories
@@ -126,7 +124,7 @@ class Project(BaseModel):
             files.extend(root.glob("*"))
 
         files = [file for file in files if file.is_file()]
-        return Project.from_files(root, files, max_workers=max_workers)
+        self._load_files(files)
 
 
 def _analyze_file(file_path: Path) -> File | None:
@@ -142,9 +140,3 @@ def _analyze_file(file_path: Path) -> File | None:
     except Exception:
         logger.exception(f"Error processing file {file_path}")
         return None
-
-
-def _git_repo(root: Path) -> Repo:
-    if not (root / ".git").exists():
-        raise NoGitRepoError(f"No git repo found at {root}")
-    return Repo(root / ".git")

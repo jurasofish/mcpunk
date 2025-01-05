@@ -17,6 +17,7 @@ dependencies = [
     "sqlalchemy~=2.0.36",
     "beautifulsoup4~=4.12.3",
     "uvicorn>=0.34.0,<1.0.0",
+    "watchdog~=6.0.0",
 ]
 
 [project.scripts]

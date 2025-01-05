@@ -4,6 +4,7 @@ import os
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from threading import Timer
+from typing import Literal
 
 from git import Repo
 from pydantic import (
@@ -46,12 +47,20 @@ class _ProjectFileHandler(FileSystemEventHandler):
         self._timers: dict[Path, Timer] = {}
         self._debounce_delay = 100
 
-    def _handle_event(self, path: Path, event_type: str) -> None:
+    def _handle_event(
+        self,
+        path: Path,
+        event_type: Literal["modified", "created", "deleted"],
+    ) -> None:
         """Process the file event after the debounce delay."""
         if path in self._timers:
             del self._timers[path]
 
-        if event_type in ("modified", "created"):
+        if event_type == "created":
+            if self._should_process(str(path)):
+                logger.info(f"Processing debounced {event_type}: {path}")
+                self.project.load_files([path])
+        elif event_type == "modified":
             if self._should_process(str(path)):
                 logger.info(f"Processing debounced {event_type}: {path}")
                 self.project.load_files([path])
@@ -62,7 +71,11 @@ class _ProjectFileHandler(FileSystemEventHandler):
         else:
             raise ValueError(f"bad value {event_type}")
 
-    def _schedule_debounce(self, path: Path, event_type: str) -> None:
+    def _schedule_debounce(
+        self,
+        path: Path,
+        event_type: Literal["modified", "created", "deleted"],
+    ) -> None:
         """Schedule a debounced file event processing."""
         if path in self._timers:
             self._timers[path].cancel()
@@ -78,6 +91,11 @@ class _ProjectFileHandler(FileSystemEventHandler):
         if not pl_path.exists():
             return False
         if not pl_path.is_file():
+            return False
+
+        # Special case this, as we def don't want it and it seems that
+        # `git check-ignore` doesn't consider it as ignored.
+        if pl_path.is_relative_to(self.project.root / ".git"):
             return False
 
         try:

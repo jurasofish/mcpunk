@@ -1,5 +1,6 @@
 import ast
 import logging
+from functools import lru_cache
 from typing import Annotated, assert_never
 
 import asttokens
@@ -9,6 +10,17 @@ from asttokens.util import walk as asttokens_walk
 from pydantic import BaseModel, ConfigDict, Field
 
 logger = logging.getLogger(__name__)
+
+
+@lru_cache(maxsize=1024)
+def _ast_cache(src: str) -> asttokens.ASTTokens:
+    """Source code to asttokens AST with caching.
+
+    Note that the cache is not particularly large, so to make effective use of it
+    you probably want to things like `for file: for analysis: ast = _ast_cache(...)`
+    rather than `for analysis: for file: ast = _ast_cache(...)`
+    """
+    return asttokens.ASTTokens(src, parse=True)
 
 
 class Callable(BaseModel):
@@ -41,7 +53,7 @@ class Callable(BaseModel):
     ) -> list["Callable"]:
         """Extract all callables from the given source code."""
         try:
-            atok = asttokens.ASTTokens(source_code, parse=True)
+            atok = _ast_cache(source_code)
         except SyntaxError:
             logger.error(  # noqa: TRY400
                 f"Skipping {source_code} because it's not valid Python syntax",
@@ -115,7 +127,7 @@ def extract_imports(source_code: str) -> list[str]:
 
     Takes source code as input and returns a list of import statements.
     """
-    atok = asttokens.ASTTokens(source_code, parse=True)
+    atok = _ast_cache(source_code)
     imports: list[str] = []
 
     for node in atok.tree.body:  # type: ignore[union-attr]
@@ -136,7 +148,7 @@ def extract_module_statements(source_code: str) -> list[str]:
     """
     # TODO: include comments
 
-    atok = asttokens.ASTTokens(source_code, parse=True)
+    atok = _ast_cache(source_code)
     statements: list[str] = []
 
     for node in atok.tree.body:  # type: ignore[union-attr]

@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     enable_log_file: bool = True
     log_file: Path = Path("~/.mcpunk/mcpunk.log").expanduser()
-    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "FATAL", "CRITICAL"] = "DEBUG"
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "FATAL", "CRITICAL"] = "INFO"
 
     default_response_indent: int | Literal["no_indent"] = 2
     include_chars_in_response: bool = True

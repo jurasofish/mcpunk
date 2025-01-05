@@ -6,6 +6,16 @@ from git import Repo
 from pydantic import (
     BaseModel,
 )
+from watchdog.events import (
+    DirCreatedEvent,
+    DirDeletedEvent,
+    DirModifiedEvent,
+    FileCreatedEvent,
+    FileDeletedEvent,
+    FileModifiedEvent,
+    FileSystemEventHandler,
+)
+from watchdog.observers import Observer
 
 from mcpunk.file_chunk import Chunk, ChunkCategory
 from mcpunk.file_chunkers import (
@@ -25,6 +35,56 @@ ALL_CHUNKERS: list[type[BaseChunker]] = [
 ]
 
 logger = logging.getLogger(__name__)
+
+
+class ProjectFileHandler(FileSystemEventHandler):
+    # TODO: some kind of debounce would be GREAT, as e.g. pycharm
+    #       saves a `my_file.py~` file for a moment whenever you save.
+    def __init__(self, project: "Project") -> None:
+        self.project = project
+
+    def _should_process(self, path: str | bytes) -> bool:
+        if self.project.git_repo is None:
+            return True
+
+        pl_path = Path(self._to_str(path))
+        if not pl_path.exists():
+            return False
+        if not pl_path.is_file():
+            return False
+
+        try:
+            rel_path = str(pl_path.relative_to(self.project.root))
+            check_ignore_res: str = self.project.git_repo.git.execute(  # type: ignore[call-overload]
+                ["git", "check-ignore", str(rel_path)],
+                with_exceptions=False,
+            )
+            return check_ignore_res == ""
+        except Exception:
+            logger.exception(f"Error checking git ignore for {self._to_str(path)}")
+            return False
+
+    def on_modified(self, event: FileModifiedEvent | DirModifiedEvent) -> None:
+        if self._should_process(event.src_path):
+            logger.info(f"File Modified: {event.src_path}")
+            self.project.load_files([Path(self._to_str(event.src_path))])
+
+    def on_created(self, event: FileCreatedEvent | DirCreatedEvent) -> None:
+        if self._should_process(event.src_path):
+            logger.info(f"File Created: {event.src_path}")
+            self.project.load_files([Path(self._to_str(event.src_path))])
+
+    def on_deleted(self, event: FileDeletedEvent | DirDeletedEvent) -> None:
+        path = Path(self._to_str(event.src_path))
+        if path in self.project.file_map:
+            logger.info(f"File Deleted: {event.src_path}")
+            del self.project.file_map[path]
+
+    @staticmethod
+    def _to_str(s: str | bytes) -> str:
+        if isinstance(s, bytes):
+            return s.decode("utf-8")
+        return s
 
 
 class File(BaseModel):
@@ -71,23 +131,28 @@ class Project:
         self.root = root
         self.max_workers = max_workers
         self.file_map: dict[Path, File] = {}
+
         git_repo: Repo | None
         if (root / ".git").exists():
             git_repo = Repo(root / ".git")
         else:
             git_repo = None
         self.git_repo = git_repo
+
         self._init_from_root_dir(root)
+
+        self.observer = Observer()
+        self.observer.schedule(ProjectFileHandler(self), str(self.root), recursive=True)
+        self.observer.start()
 
     @property
     def files(self) -> list[File]:
         return list(self.file_map.values())
 
-    def _load_files(self, files: list[Path]) -> None:
+    def load_files(self, files: list[Path]) -> None:
         files_analysed: list[File] = []
 
         with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
-            # Submit all file analysis tasks
             future_to_file = {
                 executor.submit(_analyze_file, file_path): file_path for file_path in files
             }
@@ -124,7 +189,7 @@ class Project:
             files.extend(root.glob("*"))
 
         files = [file for file in files if file.is_file()]
-        self._load_files(files)
+        self.load_files(files)
 
 
 def _analyze_file(file_path: Path) -> File | None:

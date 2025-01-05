@@ -3,6 +3,7 @@ import math
 import os
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
+from threading import Timer
 
 from git import Repo
 from pydantic import (
@@ -40,10 +41,34 @@ logger = logging.getLogger(__name__)
 
 
 class ProjectFileHandler(FileSystemEventHandler):
-    # TODO: some kind of debounce would be GREAT, as e.g. pycharm
-    #       saves a `my_file.py~` file for a moment whenever you save.
     def __init__(self, project: "Project") -> None:
         self.project = project
+        self._timers: dict[Path, Timer] = {}
+        self._debounce_delay = 100
+
+    def _handle_event(self, path: Path, event_type: str) -> None:
+        """Process the file event after the debounce delay."""
+        if path in self._timers:
+            del self._timers[path]
+
+        if event_type in ("modified", "created"):
+            if self._should_process(str(path)):
+                logger.info(f"Processing debounced {event_type}: {path}")
+                self.project.load_files([path])
+        elif event_type == "deleted":
+            if path in self.project.file_map:
+                logger.info(f"Processing debounced deletion: {path}")
+                del self.project.file_map[path]
+        else:
+            raise ValueError(f"bad value {event_type}")
+
+    def _schedule_debounce(self, path: Path, event_type: str) -> None:
+        """Schedule a debounced file event processing."""
+        if path in self._timers:
+            self._timers[path].cancel()
+        timer = Timer(self._debounce_delay, self._handle_event, args=[path, event_type])
+        self._timers[path] = timer
+        timer.start()
 
     def _should_process(self, path: str | bytes) -> bool:
         if self.project.git_repo is None:
@@ -67,20 +92,23 @@ class ProjectFileHandler(FileSystemEventHandler):
             return False
 
     def on_modified(self, event: FileModifiedEvent | DirModifiedEvent) -> None:
-        if self._should_process(event.src_path):
-            logger.info(f"File Modified: {event.src_path}")
-            self.project.load_files([Path(self._to_str(event.src_path))])
+        path = Path(self._to_str(event.src_path))
+        if path.is_file():  # Only process files, not directories
+            logger.debug(f"File Modified (debouncing): {path}")
+            self._schedule_debounce(path, "modified")
 
     def on_created(self, event: FileCreatedEvent | DirCreatedEvent) -> None:
-        if self._should_process(event.src_path):
-            logger.info(f"File Created: {event.src_path}")
-            self.project.load_files([Path(self._to_str(event.src_path))])
+        path = Path(self._to_str(event.src_path))
+        if path.is_file():  # Only process files, not directories
+            logger.debug(f"File Created (debouncing): {path}")
+            self._schedule_debounce(path, "created")
 
     def on_deleted(self, event: FileDeletedEvent | DirDeletedEvent) -> None:
         path = Path(self._to_str(event.src_path))
-        if path in self.project.file_map:
-            logger.info(f"File Deleted: {event.src_path}")
-            del self.project.file_map[path]
+        if path in self._timers:
+            self._timers[path].cancel()
+            del self._timers[path]
+        self._schedule_debounce(path, "deleted")
 
     @staticmethod
     def _to_str(s: str | bytes) -> str:

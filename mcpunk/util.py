@@ -16,41 +16,54 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
-def log_inputs(func: Callable[P, R]) -> Callable[P, R]:
+def log_inputs_outputs(
+    log_level: int | str = logging.INFO,
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Decorator to wrap a tool function and log its inputs and outputs.
 
     mcp = FastMCP()
     @mcp.tool()
-    @log_inputs
+    @log_inputs()
     def get_a_joke(): ...
+
+    Args:
+        log_level: The log level to use for the log messages, like `logging.INFO`
+            or "INFO", matching those in the `logging` module.
     """
+    if isinstance(log_level, str):
+        level = logging.getLevelNamesMapping()[log_level]
+    else:
+        level = log_level
 
-    @wraps(func)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-        lines = [
-            "",
-            " " * 2 + "./" + "-" * 116 + "\\.",
-            " " * 1 + "./" + " " * 118 + "\\.",
-            " " * 0 + "./" + " " * 120 + "\\.",
-            f"Calling tool {func.__name__} with inputs:",
-        ]
-        for i, v in enumerate(args):
-            lines.append(f"    Arg_{i}={v!r}")
-        for k, v in kwargs.items():
-            lines.append(f"    {k}={v!r}")
-        logger.debug("\n".join(lines))
-        resp = func(*args, **kwargs)
-        lines = [
-            "",
-            f"    resp={resp!r}",
-            " " * 0 + ".\\" + " " * 120 + "/.",
-            " " * 1 + ".\\" + " " * 118 + "/.",
-            " " * 2 + ".\\" + "-" * 116 + "/.",
-        ]
-        logger.debug("\n".join(lines))
-        return resp
+    def decorator(func: Callable[P, R]) -> Callable[P, R]:
+        @wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            lines = [
+                "",
+                " " * 2 + "./" + "-" * 116 + "\\.",
+                " " * 1 + "./" + " " * 118 + "\\.",
+                " " * 0 + "./" + " " * 120 + "\\.",
+                f"Calling tool {func.__name__} with inputs:",
+            ]
+            for i, v in enumerate(args):
+                lines.append(f"    Arg_{i}={v!r}")
+            for k, v in kwargs.items():
+                lines.append(f"    {k}={v!r}")
+            logger.log(level, "\n".join(lines))
+            resp = func(*args, **kwargs)
+            lines = [
+                "",
+                f"    resp={resp!r}",
+                " " * 0 + ".\\" + " " * 120 + "/.",
+                " " * 1 + ".\\" + " " * 118 + "/.",
+                " " * 2 + ".\\" + "-" * 116 + "/.",
+            ]
+            logger.log(level, "\n".join(lines))
+            return resp
 
-    return wrapper
+        return wrapper
+
+    return decorator
 
 
 def create_file_tree(

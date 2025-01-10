@@ -24,7 +24,7 @@ from mcpunk.file_breakdown import (
     Project as FileBreakdownProject,
 )
 from mcpunk.git_analysis import get_recent_branches
-from mcpunk.util import create_file_tree, log_inputs
+from mcpunk.util import create_file_tree, log_inputs_outputs
 
 logger = logging.getLogger(__name__)
 
@@ -186,7 +186,7 @@ class MCPToolOutput(BaseModel):
 
 
 @mcp.tool()
-@log_inputs
+@log_inputs_outputs()
 def get_a_joke(animal: Annotated[str, Field(max_length=20)]) -> ToolResponse:
     """Get a really funny joke! For testing :)"""
     return MCPToolOutput(
@@ -199,7 +199,7 @@ def get_a_joke(animal: Annotated[str, Field(max_length=20)]) -> ToolResponse:
 
 
 @mcp.tool()
-@log_inputs
+@log_inputs_outputs()
 def configure_project(
     root_path: Annotated[pathlib.Path, Field(description="Root path of the project")],
     project_name: Annotated[
@@ -266,7 +266,7 @@ def configure_project(
 
 
 @mcp.tool()
-@log_inputs
+@log_inputs_outputs()
 def list_all_files_in_project(
     project_name: str,
     path_filter: FilterType = None,
@@ -305,7 +305,7 @@ def list_all_files_in_project(
 
 
 @mcp.tool()
-@log_inputs
+@log_inputs_outputs()
 def find_files_by_chunk_content(
     project_name: str,
     chunk_contents_filter: FilterType,
@@ -328,7 +328,7 @@ def find_files_by_chunk_content(
 
 
 @mcp.tool()
-@log_inputs
+@log_inputs_outputs()
 def find_matching_chunks_in_file(
     proj_file: ProjectFile,
     filter_: FilterType,
@@ -350,7 +350,7 @@ def find_matching_chunks_in_file(
 
 
 @mcp.tool()
-@log_inputs
+@log_inputs_outputs()
 def chunk_details(
     proj_file: ProjectFile,
     chunk_id: str,
@@ -373,7 +373,7 @@ def chunk_details(
 
 
 @mcp.tool()
-@log_inputs
+@log_inputs_outputs()
 def list_most_recently_checked_out_branches(
     project_name: str,
     n: Annotated[int, Field(ge=20, le=50)] = 20,
@@ -384,7 +384,7 @@ def list_most_recently_checked_out_branches(
 
 
 @mcp.tool()
-@log_inputs
+@log_inputs_outputs()
 def diff_with_ref(
     project_name: str,
     ref: Annotated[str, Field(max_length=100)],
@@ -410,7 +410,7 @@ def diff_with_ref(
 
 
 @mcp.tool()
-@log_inputs
+@log_inputs_outputs()
 def add_tasks(
     tasks: Annotated[
         list[str],
@@ -447,7 +447,7 @@ def add_tasks(
 
 
 @mcp.tool()
-@log_inputs
+@log_inputs_outputs()
 def get_task() -> ToolResponse:
     """Get a single task.
 
@@ -467,7 +467,7 @@ def get_task() -> ToolResponse:
 
 
 @mcp.tool()
-@log_inputs
+@log_inputs_outputs()
 def mark_task_done(
     task_id: int,
     outcome: str,

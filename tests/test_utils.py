@@ -4,19 +4,35 @@ from string import ascii_lowercase
 
 import pytest
 
-from mcpunk.util import create_file_tree, log_inputs, matches_filter, rand_str
+from mcpunk.util import create_file_tree, log_inputs_outputs, matches_filter, rand_str
 
 
-def test_log_inputs(caplog: pytest.LogCaptureFixture) -> None:
+@pytest.mark.parametrize("log_level", (logging.DEBUG, logging.INFO, "WARNING"))
+def test_log_inputs(
+    caplog: pytest.LogCaptureFixture,
+    log_level: int | str,
+) -> None:
     """Test log_inputs decorator captures function inputs and outputs."""
     caplog.set_level(logging.DEBUG)
 
-    @log_inputs
+    @log_inputs_outputs(log_level=log_level)
     def example_func(a: int, *, b: str = "test") -> str:
         return f"{a}{b}"
 
     result = example_func(1, b="value")
     assert result == "1value"
+
+    expect_log_to_contain_snippets = [
+        "Calling tool example_func with inputs:",
+        "Arg_0=1",
+        "b='value'",
+        "resp='1value'",
+    ]
+    for t in expect_log_to_contain_snippets:
+        assert t in caplog.text, t
+        for record in caplog.records:
+            if t in record.message:
+                assert log_level in (record.levelno, record.levelname), record.levelno
 
     assert "Calling tool example_func with inputs:" in caplog.text
     assert "Arg_0=1" in caplog.text

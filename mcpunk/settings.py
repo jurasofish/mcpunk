@@ -1,13 +1,21 @@
 from datetime import timedelta
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
+from pydantic import AfterValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _post_fiddle_path(p: Path) -> Path:
+    return p.expanduser().absolute()
 
 
 class Settings(BaseSettings):
     # SQLite database path
-    db_path: Path = Path("~/.mcpunk/db.sqlite").expanduser()
+    db_path: Annotated[
+        Path,
+        AfterValidator(_post_fiddle_path),
+    ] = Path("~/.mcpunk/db.sqlite")
 
     # I believe that MCP clients should not look at stderr, but it seems some do
     # which completely messes with things. Suggest leaving this off and relying
@@ -15,7 +23,10 @@ class Settings(BaseSettings):
     enable_stderr_logging: bool = False
 
     enable_log_file: bool = True
-    log_file: Path = Path("~/.mcpunk/mcpunk.log").expanduser()
+    log_file: Annotated[
+        Path,
+        AfterValidator(_post_fiddle_path),
+    ] = Path("~/.mcpunk/mcpunk.log")
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "FATAL", "CRITICAL"] = "INFO"
 
     default_response_indent: int | Literal["no_indent"] = 2
@@ -31,4 +42,6 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="MCPUNK_",
+        validate_default=True,
+        frozen=True,
     )

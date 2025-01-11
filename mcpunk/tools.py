@@ -547,12 +547,16 @@ def _filter_files_by_chunk(
 
 
 if __name__ == "__main__":
+    import time
+
     # mark_task_done(task_id=10, outcome="ok", follow_up_criticality="low")
+    t1 = time.monotonic()
     configure_project(
         root_path=pathlib.Path("~/git/mcpunk"),
         project_name="mcpunk",
     )
-    print()
+    t2 = time.monotonic()
+    print(f"Configured project in {(t2 - t1) * 1000:.2f}ms")
     _proj = PROJECTS["mcpunk"].chunk_project
     print(len([f for f in _proj.files if f.ext == ".py"]), "files")
     print(sum(len(f.contents.splitlines()) for f in _proj.files if f.ext == ".py"), "lines")

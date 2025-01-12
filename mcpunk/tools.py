@@ -255,7 +255,12 @@ def configure_project(
     path = root_path.expanduser().absolute()
     if project_name in PROJECTS:
         raise ValueError(f"Project {project_name} already exists")
-    project = ToolProject(chunk_project=FileBreakdownProject(root=path))
+    project = ToolProject(
+        chunk_project=FileBreakdownProject(
+            root=path,
+            file_watch_refresh_freq_seconds=deps.settings().file_watch_refresh_freq_seconds,
+        ),
+    )
     PROJECTS[project_name] = project
     return MCPToolOutput(
         text=(

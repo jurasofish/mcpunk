@@ -23,6 +23,7 @@ def fiddle_settings() -> Generator[None, None, None]:
     """Fiddle misc settings for consistency in testing."""
     settings = Settings(
         include_chars_in_response=False,
+        file_watch_refresh_freq_seconds=0.0,
     )
     with deps.override(settings_partial=settings):
         yield

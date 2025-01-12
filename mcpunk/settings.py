@@ -47,6 +47,12 @@ class Settings(BaseSettings):
     # will become available again for pickup.
     task_queue_visibility_timeout_seconds: int = 300
 
+    # How long to wait between refreshing files modified on disk. This allows files
+    # to queue up and be refreshed in parallel if many are modified (e.g. switching
+    # branches), and it generally also avoids churn when e.g. an IDE creates temporary
+    # files during save (though this is not a guarantee).
+    file_watch_refresh_freq_seconds: float = 0.1
+
     @property
     def task_queue_visibility_timeout(self) -> timedelta:
         return timedelta(seconds=self.task_queue_visibility_timeout_seconds)

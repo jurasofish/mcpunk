@@ -97,45 +97,41 @@ class MarkdownChunker(BaseChunker):
 
     def chunk_file(self) -> list[Chunk]:
         chunks: list[Chunk] = []
-        current_section = []
-        current_heading = None
+        current_section: list[str] = []
+        current_heading: str | None = None
         current_line = 1
+        start_of_section = 1
 
         for line in self.source_code.split("\n"):
             if line.startswith("#"):
                 # If we have a previous section, save it
-                if current_heading is not None:
+                if current_section:
                     chunks.append(
                         Chunk(
                             category=ChunkCategory.markdown_section,
-                            name=current_heading.replace("#", "").strip(),
-                            line=current_line - len(current_section),
+                            name=current_heading.replace("#", "").strip()
+                            if current_heading is not None
+                            else "(no heading)",
+                            line=start_of_section,
                             content="\n".join(current_section),
                         ),
                     )
                 current_heading = line
                 current_section = [line]
+                start_of_section = current_line
             else:
                 current_section.append(line)
             current_line += 1
 
         # Add the last section
-        if current_heading is not None:
+        if current_section:
             chunks.append(
                 Chunk(
                     category=ChunkCategory.markdown_section,
-                    name=current_heading.replace("#", "").strip(),
-                    line=current_line - len(current_section),
-                    content="\n".join(current_section),
-                ),
-            )
-        # If there's content before any heading
-        elif current_section:
-            chunks.append(
-                Chunk(
-                    category=ChunkCategory.markdown_section,
-                    name="(no heading)",
-                    line=1,
+                    name=current_heading.replace("#", "").strip()
+                    if current_heading is not None
+                    else "(no heading)",
+                    line=start_of_section,
                     content="\n".join(current_section),
                 ),
             )

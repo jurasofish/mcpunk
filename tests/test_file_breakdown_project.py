@@ -319,3 +319,7 @@ def test_project_git_ignored_file_watch(
     # We should see in the logs a message indicating that it was ignored.
     time.sleep(200 / 1000)
     assert f"Ignoring modified for {fs.root / 'ignored.py'}" in caplog.text
+
+
+# TODO: test modifying file inside git repo
+# TODO: test load file does not exist

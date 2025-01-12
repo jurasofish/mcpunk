@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from mcpunk.file_chunk import ChunkCategory
 from mcpunk.file_chunkers import PythonChunker
 
@@ -118,3 +120,8 @@ class MyClass:
     assert module_level.category == ChunkCategory.module_level
     # We should still have module level statements, just with skeleton of the callables:
     assert module_level.content == "def func1...\nclass MyClass..."
+
+
+def test_python_chunker_invalid_syntax() -> None:
+    with pytest.raises(Exception, match=".*"):
+        _ = PythonChunker("x = (1", Path("test.py")).chunk_file()

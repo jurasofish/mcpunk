@@ -1,4 +1,6 @@
 import logging
+import math
+import os
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
@@ -126,10 +128,10 @@ class Project:
         self,
         *,
         root: Path,
-        max_workers: int | None = None,
+        files_per_parallel_worker: int = 100,
     ) -> None:
         self.root = root
-        self.max_workers = max_workers
+        self.files_per_parallel_worker = files_per_parallel_worker
         self.file_map: dict[Path, File] = {}
 
         git_repo: Repo | None
@@ -150,21 +152,33 @@ class Project:
         return list(self.file_map.values())
 
     def load_files(self, files: list[Path]) -> None:
-        files_analysed: list[File] = []
+        # How many workers to use?
+        _cpu_count = os.cpu_count() or 1
+        n_workers = math.floor(len(files) / self.files_per_parallel_worker)
+        n_workers = min(n_workers, _cpu_count // 2)  # Avoid maxing out the system
+        n_workers = max(n_workers, 1)
 
-        with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
-            future_to_file = {
-                executor.submit(_analyze_file, file_path): file_path for file_path in files
-            }
+        files_analysed: list[File]
+        if n_workers == 1:
+            files_analysed_maybe_none = [_analyze_file(file_path) for file_path in files]
+            files_analysed = [x for x in files_analysed_maybe_none if x is not None]
+        else:
+            logger.info(f"Using {n_workers} workers to process {len(files)} files")
+            files_analysed = []
+            with ProcessPoolExecutor(max_workers=n_workers) as executor:
+                future_to_file = {
+                    executor.submit(_analyze_file, file_path): file_path for file_path in files
+                }
 
-            for future in as_completed(future_to_file):
-                file_path = future_to_file[future]
-                try:
-                    result = future.result()
-                    if result is not None:
-                        files_analysed.append(result)
-                except Exception:
-                    logger.exception(f"File {file_path} generated an exception")
+                for future in as_completed(future_to_file):
+                    file_path = future_to_file[future]
+                    try:
+                        result = future.result()
+                        if result is not None:
+                            files_analysed.append(result)
+                    except Exception:
+                        logger.exception(f"File {file_path} generated an exception")
+
         for file in files_analysed:
             self.file_map[file.abs_path] = file
 

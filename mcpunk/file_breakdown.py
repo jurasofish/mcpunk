@@ -1,9 +1,10 @@
 import logging
 import math
 import os
+import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
-from threading import Timer
+from threading import Lock, Timer
 from typing import Literal
 
 from git import Repo
@@ -42,91 +43,111 @@ logger = logging.getLogger(__name__)
 
 
 class _ProjectFileHandler(FileSystemEventHandler):
-    def __init__(self, project: "Project") -> None:
+    def __init__(
+        self,
+        project: "Project",
+        file_watch_refresh_freq_seconds: float = 0.1,
+    ) -> None:
         self.project = project
-        self._timers: dict[Path, Timer] = {}
-        self._debounce_delay = 100
+        self._project_lock = Lock()
 
-    def _handle_event(
+        self._paths_pending_refresh: set[Path] = set()
+        self._paths_pending_refresh_lock = Lock()
+
+        self._refresh_freq_sec = file_watch_refresh_freq_seconds
+        self._timer: Timer | None = None
+        self._schedule_refresh()
+
+    def _schedule_refresh(self) -> None:
+        if self._timer is not None:
+            self._timer.cancel()
+        self._timer = Timer(self._refresh_freq_sec, self._refresh_paths)
+        self._timer.daemon = True
+        self._timer.start()
+
+    def _refresh_paths(self) -> None:
+        with self._project_lock:
+            with self._paths_pending_refresh_lock:
+                paths_pending_refresh = self._paths_pending_refresh.copy()
+                self._paths_pending_refresh.clear()
+            if paths_pending_refresh:
+                logger.info(f"Refreshing {len(paths_pending_refresh)} paths")
+                _paths_fmt = "\n\t".join(str(x) for x in paths_pending_refresh)
+                logger.debug(f"Refreshing\n\t{_paths_fmt}")
+
+            paths_to_delete = {x for x in paths_pending_refresh if not x.exists()}
+            for p in paths_to_delete:
+                if p.absolute() in self.project.file_map:
+                    del self.project.file_map[p.absolute()]
+
+            dir_paths = {x for x in paths_pending_refresh if x.exists() and x.is_dir()}
+
+            paths_to_really_refresh = paths_pending_refresh - dir_paths - paths_to_delete
+            self.project.load_files(list(paths_to_really_refresh))
+            self._schedule_refresh()
+
+    def _path_event(
         self,
         path: Path,
-        event_type: Literal["modified", "created", "deleted"],
+        *,
+        action: Literal["modified", "created", "deleted"],
     ) -> None:
-        """Process the file event after the debounce delay."""
-        if path in self._timers:
-            del self._timers[path]
+        path = path.absolute()
 
-        if event_type == "created":
-            if self._should_process(str(path)):
-                logger.info(f"Processing debounced {event_type}: {path}")
-                self.project.load_files([path])
-        elif event_type == "modified":
-            if self._should_process(str(path)):
-                logger.info(f"Processing debounced {event_type}: {path}")
-                self.project.load_files([path])
-        elif event_type == "deleted":
-            if path in self.project.file_map:
-                logger.info(f"Processing debounced deletion: {path}")
-                del self.project.file_map[path]
+        logger.debug(f"watchdog says {action}: {path}")
+        if self._should_process(path):
+            logger.debug(f"New path pending refresh: {path}")
+            with self._paths_pending_refresh_lock:
+                self._paths_pending_refresh.add(path)
         else:
-            raise ValueError(f"bad value {event_type}")
+            logger.debug(f"Ignoring {action} for {path}")
 
-    def _schedule_debounce(
-        self,
-        path: Path,
-        event_type: Literal["modified", "created", "deleted"],
-    ) -> None:
-        """Schedule a debounced file event processing."""
-        if path in self._timers:
-            self._timers[path].cancel()
-        timer = Timer(self._debounce_delay, self._handle_event, args=[path, event_type])
-        self._timers[path] = timer
-        timer.start()
-
-    def _should_process(self, path: str | bytes) -> bool:
+    def _should_process(self, path: Path) -> bool:
         if self.project.git_repo is None:
             return True
 
-        pl_path = Path(self._to_str(path))
-        if not pl_path.exists():
-            return False
-        if not pl_path.is_file():
+        assert path.is_absolute()
+
+        # We don't want to exclude non-existent files, as they may have been deleted.
+
+        if path.exists() and path.is_dir():
             return False
 
         # Special case this, as we def don't want it and it seems that
         # `git check-ignore` doesn't consider it as ignored.
-        if pl_path.is_relative_to(self.project.root / ".git"):
+        if path.is_relative_to(self.project.root / ".git"):
             return False
 
         try:
-            rel_path = str(pl_path.relative_to(self.project.root))
+            rel_path = str(path.relative_to(self.project.root))
+            t1 = time.monotonic()
             check_ignore_res: str = self.project.git_repo.git.execute(  # type: ignore[call-overload]
                 ["git", "check-ignore", str(rel_path)],
                 with_exceptions=False,
             )
+            logger.debug(f"git check-ignore took {(time.monotonic() - t1) * 1000:.4f}ms")
             return check_ignore_res == ""
         except Exception:
-            logger.exception(f"Error checking git ignore for {self._to_str(path)}")
+            logger.exception(f"Error checking git ignore for {path}")
             return False
 
     def on_modified(self, event: FileModifiedEvent | DirModifiedEvent) -> None:
-        path = Path(self._to_str(event.src_path))
-        if path.is_file():  # Only process files, not directories
-            logger.debug(f"File Modified (debouncing): {path}")
-            self._schedule_debounce(path, "modified")
+        self._path_event(
+            Path(self._to_str(event.src_path)),
+            action="modified",
+        )
 
     def on_created(self, event: FileCreatedEvent | DirCreatedEvent) -> None:
-        path = Path(self._to_str(event.src_path))
-        if path.is_file():  # Only process files, not directories
-            logger.debug(f"File Created (debouncing): {path}")
-            self._schedule_debounce(path, "created")
+        self._path_event(
+            Path(self._to_str(event.src_path)),
+            action="created",
+        )
 
     def on_deleted(self, event: FileDeletedEvent | DirDeletedEvent) -> None:
-        path = Path(self._to_str(event.src_path))
-        if path in self._timers:
-            self._timers[path].cancel()
-            del self._timers[path]
-        self._schedule_debounce(path, "deleted")
+        self._path_event(
+            Path(self._to_str(event.src_path)),
+            action="deleted",
+        )
 
     @staticmethod
     def _to_str(s: str | bytes) -> str:
@@ -175,6 +196,7 @@ class Project:
         *,
         root: Path,
         files_per_parallel_worker: int = 100,
+        file_watch_refresh_freq_seconds: float = 0.1,
     ) -> None:
         self.root = root
         self.files_per_parallel_worker = files_per_parallel_worker
@@ -191,7 +213,10 @@ class Project:
 
         self.observer = Observer()
         self.observer.schedule(
-            event_handler=_ProjectFileHandler(self),
+            event_handler=_ProjectFileHandler(
+                self,
+                file_watch_refresh_freq_seconds=file_watch_refresh_freq_seconds,
+            ),
             path=str(self.root),
             recursive=True,
         )

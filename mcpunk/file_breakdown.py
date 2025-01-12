@@ -40,7 +40,7 @@ ALL_CHUNKERS: list[type[BaseChunker]] = [
 logger = logging.getLogger(__name__)
 
 
-class ProjectFileHandler(FileSystemEventHandler):
+class _ProjectFileHandler(FileSystemEventHandler):
     def __init__(self, project: "Project") -> None:
         self.project = project
         self._timers: dict[Path, Timer] = {}
@@ -172,7 +172,11 @@ class Project:
         self._init_from_root_dir(root)
 
         self.observer = Observer()
-        self.observer.schedule(ProjectFileHandler(self), str(self.root), recursive=True)
+        self.observer.schedule(
+            event_handler=_ProjectFileHandler(self),
+            path=str(self.root),
+            recursive=True,
+        )
         self.observer.start()
 
     @property

@@ -61,15 +61,23 @@ class PythonChunker(BaseChunker):
         callables = Callable.from_source_code(self.source_code)
         imports = "\n".join(extract_imports(self.source_code))
         module_level_statements = "\n".join(extract_module_statements(self.source_code))
-        chunks: list[Chunk] = [
-            Chunk(category=ChunkCategory.imports, name="<imports>", line=None, content=imports),
-            Chunk(
-                category=ChunkCategory.module_level,
-                name="<module_level_statements>",
-                line=None,
-                content=module_level_statements,
-            ),
-        ]
+
+        chunks: list[Chunk] = []
+
+        if imports.strip() != "":
+            chunks.append(
+                Chunk(category=ChunkCategory.imports, name="<imports>", line=None, content=imports),
+            )
+        if module_level_statements.strip() != "":
+            chunks.append(
+                Chunk(
+                    category=ChunkCategory.module_level,
+                    name="<module_level_statements>",
+                    line=None,
+                    content=module_level_statements,
+                ),
+            )
+
         chunks.extend(
             Chunk(
                 category=ChunkCategory.callable,

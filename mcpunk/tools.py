@@ -431,9 +431,9 @@ def diff_with_ref(
         f"{ref}...HEAD",
         ignore_blank_lines=True,
         ignore_space_at_eol=True,
-    )  # create_patch=True)
+    )
     return MCPToolOutput(
-        jsonable=diff,
+        text=diff,
         max_chars=deps.settings().default_git_diff_response_max_chars,
     ).render()
 

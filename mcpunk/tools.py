@@ -1,3 +1,4 @@
+import inspect
 import json
 import logging
 import pathlib
@@ -238,7 +239,7 @@ def configure_project(
     PROJECTS[project_name] = project
     return MCPToolOutput(
         text=(
-            textwrap.dedent(f"""\
+            inspect.cleandoc(f"""\
             Project {path} configured with {len(project.chunk_project.files)} files.
             Files are split into 'chunks' - logical sections like:
             - Functions (e.g. 'def my_function')

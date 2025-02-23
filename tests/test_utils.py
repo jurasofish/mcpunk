@@ -1,4 +1,5 @@
 import logging
+import os
 from pathlib import Path
 from string import ascii_lowercase
 
@@ -72,8 +73,9 @@ def test_create_file_tree(tmp_path: Path) -> None:
         paths=paths,
     )
 
+    sep = os.path.sep
     expected = (
-        ".: file3.txt\ndir1: file1.txt; other.txt\ndir1/subdir: file2.txt\n"
+        f".: file3.txt\ndir1: file1.txt; other.txt\ndir1{sep}subdir: file2.txt\n"
         "logs: app.log; error.log\n"
     )
     assert result == expected

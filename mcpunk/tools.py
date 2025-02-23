@@ -406,7 +406,7 @@ def list_most_recently_checked_out_branches(
 ) -> ToolResponse:
     """List the n most recently checked out branches in the project"""
     project = _get_project_or_error(project_name)
-    return MCPToolOutput(jsonable=get_recent_branches(project.git_path, n)).render()
+    return MCPToolOutput(text="\n".join(get_recent_branches(project.git_path, n))).render()
 
 
 @mcp.tool()

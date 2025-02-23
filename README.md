@@ -1,5 +1,7 @@
 # MCPunk 🤖
 
+Homepage https://github.com/jurasofish/mcpunk
+
 MCPunk provides tools for [Roaming RAG](https://arcturus-labs.com/blog/2024/11/21/roaming-rag--make-_the-model_-find-the-answers/)
 with [Model Context Protocol](https://github.com/modelcontextprotocol).
 

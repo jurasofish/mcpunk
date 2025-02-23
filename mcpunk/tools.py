@@ -382,12 +382,20 @@ def chunk_details(
     2. Examining implementations after finding definitions/uses
     """
     target_file = proj_file.file
-    chunks = [chunk for chunk in target_file.chunks if chunk.id_ == chunk_id]
-    if len(chunks) == 0:
+    chunks_raw = [chunk for chunk in target_file.chunks if chunk.id_ == chunk_id]
+    chunk_contents = [inspect.cleandoc(x.content) for x in chunks_raw]
+    if len(chunk_contents) == 0:
         return MCPToolOutput(
-            text=("No matching chunks. Please use other tools to find available chunks."),
+            text="No matching chunks. Please use other tools to find available chunks.",
         ).render()
-    return MCPToolOutput(jsonable=[x.content for x in chunks]).render()
+    elif len(chunk_contents) == 1:
+        return MCPToolOutput(text=chunk_contents[0]).render()
+    else:
+        # Honestly should perhaps just raise here 🤷
+        resp = "WARNING MULTIPLE CHUNKS FOUND THIS IS VERY ODD"
+        for i, chunk_content in enumerate(chunk_contents):
+            resp += f"\n\n# Chunk {i + 1}{chunk_content}"
+        return MCPToolOutput(text=resp).render()
 
 
 @mcp.tool()

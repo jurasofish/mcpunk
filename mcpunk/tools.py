@@ -312,7 +312,6 @@ def list_all_files_in_project(
     data = create_file_tree(
         project_root=project.root,
         paths={x.abs_path for x in project.chunk_project.files},
-        expand_parent_directories=True,
         limit_depth_from_root=limit_depth_from_root,
         filter_=path_filter,
     )
@@ -320,8 +319,6 @@ def list_all_files_in_project(
         return MCPToolOutput(text="No paths").render()
     elif isinstance(data, str):
         return MCPToolOutput(text=data).render()
-    elif isinstance(data, dict):
-        return MCPToolOutput(jsonable=data).render()
     else:
         assert_never(data)
 
@@ -567,8 +564,6 @@ def _filter_files_by_chunk(
         return MCPToolOutput(text="No files found")
     elif isinstance(data, str):
         return MCPToolOutput(text=data)
-    elif isinstance(data, dict):
-        return MCPToolOutput(jsonable=data)
     else:
         assert_never(data)
 

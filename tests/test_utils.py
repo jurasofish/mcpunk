@@ -41,48 +41,42 @@ def test_log_inputs(
 
 
 def test_create_file_tree(tmp_path: Path) -> None:
-    """Test create_file_tree generates correct tree structure."""
+    """Test create_file_tree generates correct compact text output."""
     # Set up test files
     (tmp_path / "dir1").mkdir()
     (tmp_path / "dir1/file1.txt").touch()
+    (tmp_path / "dir1/other.txt").touch()
     (tmp_path / "dir1/subdir").mkdir()
     (tmp_path / "dir1/subdir/file2.txt").touch()
     (tmp_path / "file3.txt").touch()
     (tmp_path / "dir2/dir4/dir5").mkdir(parents=True)
+    (tmp_path / "logs").mkdir()
+    (tmp_path / "logs/app.log").touch()
+    (tmp_path / "logs/error.log").touch()
 
     paths = {
         tmp_path / "dir1",
         tmp_path / "dir1/file1.txt",
+        tmp_path / "dir1/other.txt",
         tmp_path / "dir1/subdir",
         tmp_path / "dir1/subdir/file2.txt",
         tmp_path / "file3.txt",
         tmp_path / "dir2/dir4/dir5",
+        tmp_path / "logs",
+        tmp_path / "logs/app.log",
+        tmp_path / "logs/error.log",
     }
 
     result = create_file_tree(
         project_root=tmp_path,
         paths=paths,
-        force_response_structure="dict",
     )
 
-    assert result == {
-        "root": {
-            "dir1": {
-                "f": ["file1.txt"],
-                "subdir": {
-                    "f": ["file2.txt"],
-                },
-            },
-            "dir2": {
-                "dir4": {
-                    "dir5": {"f": "..."},
-                    "f": "...",
-                },
-                "f": "...",
-            },
-            "f": ["file3.txt"],
-        },
-    }
+    expected = (
+        ".: file3.txt\ndir1: file1.txt; other.txt\ndir1/subdir: file2.txt\n"
+        "logs: app.log; error.log\n"
+    )
+    assert result == expected
 
 
 def test_create_file_tree_with_filter(tmp_path: Path) -> None:
@@ -101,17 +95,13 @@ def test_create_file_tree_with_filter(tmp_path: Path) -> None:
         project_root=tmp_path,
         paths=paths,
         filter_=[".py"],
-        force_response_structure="dict",
     )
-    assert result == {
-        "root": {
-            "f": ["main.py", "test.py"],
-        },
-    }
+    assert result == ".: main.py; test.py\n"
 
 
 def test_create_file_tree_depth_limit(tmp_path: Path) -> None:
     """Test create_file_tree with depth limit."""
+    (tmp_path / "file0.txt").touch()
     (tmp_path / "dir1/dir2/dir3").mkdir(parents=True)
     (tmp_path / "dir1/file1.txt").touch()
     (tmp_path / "dir1/dir2/file2.txt").touch()
@@ -120,6 +110,7 @@ def test_create_file_tree_depth_limit(tmp_path: Path) -> None:
     paths = {
         tmp_path / p
         for p in [
+            "file0.txt",
             "dir1",
             "dir1/file1.txt",
             "dir1/dir2",
@@ -133,18 +124,8 @@ def test_create_file_tree_depth_limit(tmp_path: Path) -> None:
         project_root=tmp_path,
         paths=paths,
         limit_depth_from_root=2,
-        force_response_structure="dict",
     )
-
-    assert result == {
-        "root": {
-            "dir1": {
-                "f": ["file1.txt"],
-                "dir2": {"f": "..."},
-            },
-            "f": "...",
-        },
-    }
+    assert result == ".: file0.txt\ndir1: file1.txt\n"
 
 
 def test_rand_str() -> None:

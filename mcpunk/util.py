@@ -1,12 +1,13 @@
 import json
 import logging
 import random
+from collections import defaultdict
 from collections.abc import Callable
 from copy import deepcopy
 from functools import wraps
 from pathlib import Path
 from string import ascii_lowercase
-from typing import Any, ParamSpec, TypeVar, assert_never
+from typing import Any, Literal, ParamSpec, TypeVar, assert_never
 
 from pydantic_core import to_jsonable_python
 
@@ -73,7 +74,8 @@ def create_file_tree(
     expand_parent_directories: bool = True,
     limit_depth_from_root: int | None = None,
     filter_: None | list[str] = None,
-) -> dict[str, Any] | None:
+    force_response_structure: Literal["dict", "plain_text"] | None = None,
+) -> dict[str, Any] | str | None:
     """Create a tree structure from a set of file and directory paths.
 
     This is intended to be returned by a tool function, for consumption
@@ -92,12 +94,19 @@ def create_file_tree(
             in the tree. None matches all paths. str matches if the path contains
             the string. list[str] matches if the path contains any of the strings
             in the list.
+        force_response_structure: If provided, force the response to be a dict
+            or a plain text string.
 
     Returns:
-        A dictionary representing the tree structure where:
-        - Directories have a "f" key with either "..." or a list of filenames
-        - The structure preserves the hierarchy of directories
-        - Or None if no paths were included in the tree
+        EITHER:
+            A dictionary representing the tree structure where:
+                - Directories have a "f" key with either "..." or a list of filenames
+                - The structure preserves the hierarchy of directories
+                - Or None if no paths were included in the tree
+            OR a string representing the tree structure in plain text.
+            Whichever response has the fewest characters is returned, or whichever
+            is dictated by `force_response_structure`.
+
     """
     paths = deepcopy(paths)  # Avoid mutation shenanigans
     project_root = project_root.absolute()
@@ -156,13 +165,48 @@ def create_file_tree(
         parent["f"].append(file_path.name)
         parent["f"] = sorted(parent["f"])
 
-    # Round trip through JSON just to sort things thank you
+    # Round trip through JSON just to sort things like `Path('/x')` -> `/x` thank you
     data_jsonable = to_jsonable_python(data)
     data = json.loads(json.dumps(data_jsonable, sort_keys=True))
 
     if data == default_data:
         return None
-    return data
+
+    plain_text_version = ""
+    for p in sorted(filtered_file_paths):
+        plain_text_version += f"{p.relative_to(project_root)}\n"
+
+    plain_text_version_v2 = ""
+    files_by_parent_dir: dict[Path, list[Path]] = defaultdict(list)
+    for p in sorted(filtered_file_paths):
+        files_by_parent_dir[p.parent].append(p)
+    for parent_dir in sorted(files_by_parent_dir.keys()):
+        plain_text_version_v2 += f"{parent_dir.relative_to(project_root)}: "
+        plain_text_version_v2 += "; ".join(x.name for x in files_by_parent_dir[parent_dir])
+        plain_text_version_v2 += "\n"
+
+    if len(plain_text_version_v2) < len(plain_text_version):
+        plain_text_version = plain_text_version_v2
+
+    if force_response_structure == "dict":
+        return data
+    elif force_response_structure == "plain_text":
+        return plain_text_version
+    elif force_response_structure is None:
+        serialised_json_version = json.dumps(data, indent=2)
+        logger.info(
+            f"Serialised JSON version is {len(serialised_json_version)} "
+            f"chars: {serialised_json_version}",
+        )
+        logger.info(
+            f"Plain text version is {len(plain_text_version)} chars: {plain_text_version}",
+        )
+        if len(plain_text_version) < len(serialised_json_version):
+            return plain_text_version
+        else:
+            return serialised_json_version
+    else:
+        assert_never(force_response_structure)
 
 
 def _get_depth_from_root(root: Path, file: Path) -> int:

@@ -318,8 +318,12 @@ def list_all_files_in_project(
     )
     if data is None:
         return MCPToolOutput(text="No paths").render()
-    else:
+    elif isinstance(data, str):
+        return MCPToolOutput(text=data).render()
+    elif isinstance(data, dict):
         return MCPToolOutput(jsonable=data).render()
+    else:
+        assert_never(data)
 
 
 @mcp.tool()
@@ -561,7 +565,12 @@ def _filter_files_by_chunk(
     data = create_file_tree(project_root=project.root, paths=matching_files)
     if data is None:
         return MCPToolOutput(text="No files found")
-    return MCPToolOutput(jsonable=data)
+    elif isinstance(data, str):
+        return MCPToolOutput(text=data)
+    elif isinstance(data, dict):
+        return MCPToolOutput(jsonable=data)
+    else:
+        assert_never(data)
 
 
 if __name__ == "__main__":

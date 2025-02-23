@@ -62,6 +62,7 @@ def test_create_file_tree(tmp_path: Path) -> None:
     result = create_file_tree(
         project_root=tmp_path,
         paths=paths,
+        force_response_structure="dict",
     )
 
     assert result == {
@@ -96,7 +97,12 @@ def test_create_file_tree_with_filter(tmp_path: Path) -> None:
         tmp_path / "data.txt",
     }
 
-    result = create_file_tree(project_root=tmp_path, paths=paths, filter_=[".py"])
+    result = create_file_tree(
+        project_root=tmp_path,
+        paths=paths,
+        filter_=[".py"],
+        force_response_structure="dict",
+    )
     assert result == {
         "root": {
             "f": ["main.py", "test.py"],
@@ -123,7 +129,12 @@ def test_create_file_tree_depth_limit(tmp_path: Path) -> None:
         ]
     }
 
-    result = create_file_tree(project_root=tmp_path, paths=paths, limit_depth_from_root=2)
+    result = create_file_tree(
+        project_root=tmp_path,
+        paths=paths,
+        limit_depth_from_root=2,
+        force_response_structure="dict",
+    )
 
     assert result == {
         "root": {

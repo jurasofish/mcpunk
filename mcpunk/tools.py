@@ -534,21 +534,10 @@ def _list_chunks_in_file(
 ) -> MCPToolOutput:
     target_file = proj_file.file
     chunks = [x for x in target_file.chunks if x.matches_filter(filter_, filter_on)]
-    resp_data = [
-        {
-            "n": x.name,
-            "t": x.category,
-            "id": x.id_,
-            "chars": len(x.content),
-        }
-        for x in chunks
-    ]
-    return MCPToolOutput(
-        jsonable=[
-            f"({len(chunks)} of {len(target_file.chunks)} chunks)",
-            resp_data,
-        ],
-    )
+    resp_data = [f"id={x.id_} (category={x.category} chars={len(x.content)})" for x in chunks]
+    resp_text = "\n".join(resp_data)
+    chunk_info = f"({len(chunks)} of {len(target_file.chunks)} chunks)"
+    return MCPToolOutput(text=f"{chunk_info}\n{resp_text}")
 
 
 def _filter_files_by_chunk(

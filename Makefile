@@ -1,9 +1,9 @@
 
 test:
-	uv run --frozen --all-extras --all-groups pytest ./tests --verbose --color=yes
+	uv run --frozen --all-extras --all-groups pytest ./tests --verbose --color=yes --durations=10
 
 test-coverage:
-	uv run --frozen --all-extras --all-groups pytest ./tests  --cov . --cov-branch --cov-report html --cov-config=.coveragerc --verbose --color=yes
+	uv run --frozen --all-extras --all-groups pytest ./tests  --cov . --cov-branch --cov-report html --cov-config=.coveragerc --verbose --color=yes --durations=10
 
 ruff-lint-fix:
 	uv run --frozen --all-extras --all-groups ruff check . --fix

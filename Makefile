@@ -28,6 +28,6 @@ lint-fix: ruff-format-fix ruff-lint-fix ruff-format-fix mypy-check pre-commit-ch
 # Intended to be used before committing to auto-fix what can be fixed and check the rest.
 lint: lint-fix
 
-install-dev:
-	uv sync --all-extras --all-groups
+install:
+	uv sync --all-extras --all-groups --frozen
 	uv pip install -e .

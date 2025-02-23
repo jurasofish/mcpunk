@@ -19,7 +19,7 @@ jobs:
         uses: astral-sh/setup-uv@v4
 
       - name: Install
-        run: make install-dev
+        run: make install
 
       - name: Run Linting
         run: make lint

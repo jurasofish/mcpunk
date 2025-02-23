@@ -4,7 +4,7 @@ import logging
 import pathlib
 import textwrap
 from collections.abc import Sequence
-from typing import Annotated, Any, Literal, Self
+from typing import Annotated, Any, Literal, Self, assert_never
 
 import mcp.types as mcp_types
 from fastmcp import FastMCP
@@ -110,8 +110,8 @@ class MCPToolOutput(BaseModel):
 
     # You might like this set to 2/4 for debugging, makes things look nice!
     # But that means more token usage I guess.
-    # an int will do what you expect. None for compact. "default" will use
-    # Whatever is set as the default on `MCPTools`
+    # an int will do what you expect. None for compact. If unset, will default to
+    # the value from settings.
     indent: int | Literal["no_indent"] = Field(
         default_factory=lambda: deps.settings().default_response_indent,
     )
@@ -121,15 +121,25 @@ class MCPToolOutput(BaseModel):
     # If the sum of the length of all text responses is greater than this
     # then an error will be returned to the caller. non-text responses (image, etc)
     # are not counted.
-    max_chars: int = 20_000
+    max_chars: int = Field(
+        default_factory=lambda: deps.settings().default_response_max_chars,
+    )
+
+    # Whether to include the number of characters in the response in the response.
+    # So like `[DEBUG INFO: Response is 1234 chars]` prefixed to the response.
+    include_chars_in_response: bool = Field(
+        default_factory=lambda: deps.settings().include_chars_in_response,
+    )
 
     def render(self) -> ToolResponse:
         indent: int | None
         if self.indent == "no_indent":
             indent = None
-        else:
+        elif isinstance(self.indent, int):
             assert isinstance(self.indent, int)
             indent = self.indent
+        else:
+            assert_never(self.indent)
         assert indent is None or isinstance(indent, int)
 
         out: list[ToolResponseSingleItem] = []
@@ -149,8 +159,11 @@ class MCPToolOutput(BaseModel):
         if self.raw is not None:
             if isinstance(self.raw, ToolResponseSingleItem):
                 out.append(self.raw)
-            else:
+            elif isinstance(self.raw, Sequence):
+                assert all(isinstance(x, ToolResponseSingleItem) for x in self.raw)
                 out.extend(self.raw)
+            else:
+                assert_never(self.raw)
         if self.text is not None:
             out.append(mcp_types.TextContent(type="text", text=self.text))
         if len(out) == 0:
@@ -167,11 +180,15 @@ class MCPToolOutput(BaseModel):
             logger.warning(msg)
             out = [mcp_types.TextContent(type="text", text=msg)]
 
-        if deps.settings().include_chars_in_response:
-            out.insert(
-                0,
-                mcp_types.TextContent(type="text", text=f"Response is {total_chars} chars"),
-            )
+        if self.include_chars_in_response:
+            len_msg = f"[DEBUG INFO: Response is {total_chars} chars]"
+            if len(out) == 1 and isinstance(out[0], mcp_types.TextContent):
+                out[0].text = f"{len_msg}\n\n{out[0].text}"
+            else:
+                out.insert(
+                    0,
+                    mcp_types.TextContent(type="text", text=f"Response is {total_chars} chars"),
+                )
 
         final_out: ToolResponse
         if len(out) == 1:
@@ -407,7 +424,10 @@ def diff_with_ref(
         ignore_blank_lines=True,
         ignore_space_at_eol=True,
     )  # create_patch=True)
-    return MCPToolOutput(jsonable=diff, max_chars=50_000).render()
+    return MCPToolOutput(
+        jsonable=diff,
+        max_chars=deps.settings().default_git_diff_response_max_chars,
+    ).render()
 
 
 @mcp.tool()

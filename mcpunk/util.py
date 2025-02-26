@@ -69,7 +69,7 @@ def create_file_tree(
     project_root: Path,
     paths: set[Path],
     limit_depth_from_root: int | None = None,
-    filter_: None | list[str] = None,
+    filter_: None | list[str] | str = None,
 ) -> str | None:
     """Create a compact text representation of files in a directory structure.
 
@@ -130,7 +130,7 @@ def rand_str(n: int = 10, chars: str = ascii_lowercase) -> str:
     return "".join(random.choice(chars) for _ in range(n))
 
 
-def matches_filter(filter_: None | list[str], data: str | None) -> bool:
+def matches_filter(filter_: None | list[str] | str, data: str | None) -> bool:
     """Return True if the data matches the given filter.
 
     filter_ can be:
@@ -144,6 +144,8 @@ def matches_filter(filter_: None | list[str], data: str | None) -> bool:
         return True
     if data is None:
         return False
+    if isinstance(filter_, str):
+        return filter_ in data
     if isinstance(filter_, list):
         return any(x in data for x in filter_)
     assert_never(filter_)

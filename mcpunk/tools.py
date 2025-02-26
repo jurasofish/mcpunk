@@ -38,7 +38,7 @@ ToolResponseSingleItem = mcp_types.TextContent | mcp_types.ImageContent | mcp_ty
 ToolResponseSequence = Sequence[ToolResponseSingleItem]
 ToolResponse = ToolResponseSequence | ToolResponseSingleItem
 FilterType = Annotated[
-    list[str] | None,
+    str | list[str] | None,
     Field(description="Match if any of these strings appear. Match all if None/null."),
 ]
 

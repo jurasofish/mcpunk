@@ -58,7 +58,7 @@ class Chunk(BaseModel):
 
     def matches_filter(
         self,
-        filter_: None | list[str],
+        filter_: None | list[str] | str,
         filter_on: Literal["name", "content", "name_or_content"],
     ) -> bool:
         """Return True if the chunk's name matches the given filter.

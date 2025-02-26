@@ -349,7 +349,8 @@ def find_files_by_chunk_content(
 @mcp.tool()
 @log_inputs_outputs()
 def find_matching_chunks_in_file(
-    proj_file: ProjectFile,
+    project_name: str,
+    rel_path: Annotated[pathlib.Path, Field(description="Relative to project root")],
     filter_: FilterType,
 ) -> ToolResponse:
     """Step 2: Find the actual matching chunks in a specific file.
@@ -365,13 +366,15 @@ def find_matching_chunks_in_file(
 
     Returns array of {n: name, t: type, id: identifier, chars: length}
     """
+    proj_file = ProjectFile(project_name=project_name, rel_path=rel_path)
     return _list_chunks_in_file(proj_file, filter_, "name_or_content").render()
 
 
 @mcp.tool()
 @log_inputs_outputs()
 def chunk_details(
-    proj_file: ProjectFile,
+    project_name: str,
+    rel_path: Annotated[pathlib.Path, Field(description="Relative to project root")],
     chunk_id: str,
 ) -> ToolResponse:
     """Get full content of a specific chunk.
@@ -382,6 +385,7 @@ def chunk_details(
     1. Final step after find_matching_chunks_in_file finds relevant chunks
     2. Examining implementations after finding definitions/uses
     """
+    proj_file = ProjectFile(project_name=project_name, rel_path=rel_path)
     target_file = proj_file.file
     chunks_raw = [chunk for chunk in target_file.chunks if chunk.id_ == chunk_id]
     chunk_contents = [inspect.cleandoc(x.content) for x in chunks_raw]
@@ -596,10 +600,8 @@ if __name__ == "__main__":
         filter_on="name",
     )
     chunk_details(
-        proj_file=ProjectFile(
-            project_name="mcpunk",
-            rel_path=pathlib.Path("README.md"),
-        ),
+        project_name="mcpunk",
+        rel_path=pathlib.Path("README.md"),
         chunk_id="xxx",
     )
     # f = [

@@ -45,7 +45,7 @@ class WholeFileChunker(BaseChunker):
         return [
             Chunk(
                 category=ChunkCategory.whole_file,
-                name="<whole_file>",
+                name="whole_file",
                 content=self.source_code,
                 line=1,
             ),
@@ -66,13 +66,13 @@ class PythonChunker(BaseChunker):
 
         if imports.strip() != "":
             chunks.append(
-                Chunk(category=ChunkCategory.imports, name="<imports>", line=None, content=imports),
+                Chunk(category=ChunkCategory.imports, name="imports", line=None, content=imports),
             )
         if module_level_statements.strip() != "":
             chunks.append(
                 Chunk(
                     category=ChunkCategory.module_level,
-                    name="<module_level_statements>",
+                    name="module_level_statements",
                     line=None,
                     content=module_level_statements,
                 ),

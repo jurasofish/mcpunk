@@ -38,8 +38,8 @@ class MyClass:
     chunks = sorted(chunks, key=lambda x: x.line if x.line is not None else -1)
 
     assert [x.name for x in chunks] == [
-        "<imports>",
-        "<module_level_statements>",
+        "imports",
+        "module_level_statements",
         "func1",
         "MyClass",
         "method1",
@@ -87,7 +87,7 @@ import os
 """
     chunks = PythonChunker(imports_only, Path("test.py")).chunk_file()
     assert len(chunks) == 1
-    assert chunks[0].name == "<imports>"
+    assert chunks[0].name == "imports"
     assert chunks[0].content == "from typing import List\nimport os"
 
 
@@ -99,7 +99,7 @@ y = 2
 """
     chunks = PythonChunker(module_level_only, Path("test.py")).chunk_file()
     assert len(chunks) == 1
-    assert chunks[0].name == "<module_level_statements>"
+    assert chunks[0].name == "module_level_statements"
     assert chunks[0].content == "x = 1\ny = 2"
 
 
@@ -115,7 +115,7 @@ class MyClass:
 """
     chunks = PythonChunker(callables_only, Path("test.py")).chunk_file()
     assert len(chunks) == 4
-    assert [x.name for x in chunks] == ["<module_level_statements>", "func1", "MyClass", "method1"]
+    assert [x.name for x in chunks] == ["module_level_statements", "func1", "MyClass", "method1"]
     module_level = chunks[0]
     assert module_level.category == ChunkCategory.module_level
     # We should still have module level statements, just with skeleton of the callables:

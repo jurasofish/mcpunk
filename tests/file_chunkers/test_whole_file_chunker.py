@@ -11,7 +11,7 @@ def test_whole_file_chunker() -> None:
     assert len(chunks) == 1
     chunk = chunks[0]
     assert chunk.category.value == "whole_file"
-    assert chunk.name == "<whole_file>"
+    assert chunk.name == "whole_file"
     assert chunk.line == 1
     assert chunk.content == "some\ncontent"
 

@@ -35,21 +35,76 @@ class BaseChunker:
 
 
 class WholeFileChunker(BaseChunker):
-    """Unconditionally chunk the whole file in a single chunk."""
+    """Chunk the file into segments of at most 10000 characters, splitting at line boundaries."""
+
+    MAX_CHUNK_SIZE: int = 10000
+    MAX_LINE_SIZE: int = 9950  # Slightly smaller to ensure we don't exceed MAX_CHUNK_SIZE
 
     @staticmethod
     def can_chunk(source_code: str, file_path: Path) -> bool:  # noqa: ARG004
         return True
 
     def chunk_file(self) -> list[Chunk]:
-        return [
-            Chunk(
-                category=ChunkCategory.whole_file,
-                name="whole_file",
-                content=self.source_code,
-                line=1,
-            ),
-        ]
+        # Pre-process any lines exceeding MAX_LINE_SIZE
+        processed_lines = self._preprocess_long_lines(self.source_code, self.MAX_LINE_SIZE)
+        chunks: list[Chunk] = []
+
+        current_chunk: list[str] = []
+        current_size: int = 0
+        line_num: int = 1
+        chunk_start_line: int = 1
+
+        for line in processed_lines:
+            # If adding this line would exceed the limit, create a new chunk
+            if current_size + len(line) > self.MAX_CHUNK_SIZE and current_chunk:
+                chunks.append(
+                    Chunk(
+                        category=ChunkCategory.whole_file,
+                        name=f"file_chunk_{chunk_start_line}",
+                        content="".join(current_chunk),
+                        line=chunk_start_line,
+                    ),
+                )
+
+                # Reset for next chunk
+                current_chunk = []
+                current_size = 0
+                chunk_start_line = line_num
+
+            # Add the line to the current chunk
+            current_chunk.append(line)
+            current_size += len(line)
+            line_num += 1
+
+        # Add the final chunk if there's anything left
+        if current_chunk:
+            chunks.append(
+                Chunk(
+                    category=ChunkCategory.whole_file,
+                    name=f"<file_chunk_{chunk_start_line}>",
+                    content="".join(current_chunk),
+                    line=chunk_start_line,
+                ),
+            )
+
+        return chunks
+
+    @staticmethod
+    def _preprocess_long_lines(source_code: str, max_line_size: int = 9950) -> list[str]:
+        """Split any lines longer than MAX_LINE_SIZE into multiple lines."""
+        original_lines = source_code.splitlines(keepends=True)
+        processed_lines = []
+
+        for line in original_lines:
+            if len(line) > max_line_size:
+                # Split the line into chunks of MAX_LINE_SIZE
+                for i in range(0, len(line), max_line_size):
+                    chunk = line[i : i + max_line_size]
+                    processed_lines.append(chunk)
+            else:
+                processed_lines.append(line)
+
+        return processed_lines
 
 
 class PythonChunker(BaseChunker):

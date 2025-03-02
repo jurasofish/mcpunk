@@ -24,7 +24,7 @@ def test_id(request: pytest.FixtureRequest) -> str:
     """A (probably) unique ID for each test"""
     test_hash = hashlib.md5(request.node.nodeid.encode()).hexdigest()  # noqa: S324
     assert len(test_hash) == 32
-    return f"{request.node.name[:(60 - len(test_hash) - 1)]}_{test_hash}"
+    return f"{request.node.name[: (60 - len(test_hash) - 1)]}_{test_hash}"
 
 
 class FileSet:

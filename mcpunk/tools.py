@@ -371,8 +371,6 @@ def find_matching_chunks_in_file(
         (e.g. find_matching_chunks_in_file(..., ["my_funk"])
       - Finding a chunk where a specific function is defined
         (e.g. find_matching_chunks_in_file(..., ["def my_funk"])
-
-    Returns array of {n: name, t: type, id: identifier, chars: length}
     """
     proj_file = ProjectFile(project_name=project_name, rel_path=rel_path)
     return _list_chunks_in_file(proj_file, filter_, "name_or_content").render()

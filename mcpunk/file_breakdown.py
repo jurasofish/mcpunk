@@ -67,24 +67,28 @@ class _ProjectFileHandler(FileSystemEventHandler):
 
     def _refresh_paths(self) -> None:
         with self._project_lock:
-            with self._paths_pending_refresh_lock:
-                paths_pending_refresh = self._paths_pending_refresh.copy()
-                self._paths_pending_refresh.clear()
-            if paths_pending_refresh:
-                logger.info(f"Refreshing {len(paths_pending_refresh)} paths")
-                _paths_fmt = "\n\t".join(str(x) for x in paths_pending_refresh)
-                logger.debug(f"Refreshing\n\t{_paths_fmt}")
+            try:
+                with self._paths_pending_refresh_lock:
+                    paths_pending_refresh = self._paths_pending_refresh.copy()
+                    self._paths_pending_refresh.clear()
+                if paths_pending_refresh:
+                    logger.info(f"Refreshing {len(paths_pending_refresh)} paths")
+                    _paths_fmt = "\n\t".join(str(x) for x in paths_pending_refresh)
+                    logger.debug(f"Refreshing\n\t{_paths_fmt}")
 
-            paths_to_delete = {x for x in paths_pending_refresh if not x.exists()}
-            for p in paths_to_delete:
-                if p.absolute() in self.project.file_map:
-                    del self.project.file_map[p.absolute()]
+                paths_to_delete = {x for x in paths_pending_refresh if not x.exists()}
+                for p in paths_to_delete:
+                    if p.absolute() in self.project.file_map:
+                        del self.project.file_map[p.absolute()]
 
-            dir_paths = {x for x in paths_pending_refresh if x.exists() and x.is_dir()}
+                dir_paths = {x for x in paths_pending_refresh if x.exists() and x.is_dir()}
 
-            paths_to_really_refresh = paths_pending_refresh - dir_paths - paths_to_delete
-            self.project.load_files(list(paths_to_really_refresh))
-            self._schedule_refresh()
+                paths_to_really_refresh = paths_pending_refresh - dir_paths - paths_to_delete
+                self.project.load_files(list(paths_to_really_refresh))
+            except Exception:
+                logger.exception("Error refreshing paths")
+            finally:
+                self._schedule_refresh()
 
     def _path_event(
         self,

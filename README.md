@@ -21,10 +21,6 @@ The LLM can then query the entire project for chunks with specific names or with
 specific text in their contents. The LLM can then fetch the entire contents
 of individual chunks.
 
-**On top of this**, MCPunk provides tools for analysing git diffs to help
-with PR reviews, and provides a task queue that LLMs can read and write, allowing
-you to split work across multiple chats to keep context manageable.
-
 All this with no SaaS, no pricing, nothing (well you need a claude SaaS sub).
 Just you and Claude Desktop, with all tools running on your local machine after
 one tiny snippet in `claude_desktop_config.json`.
@@ -53,7 +49,7 @@ Next, start claude desktop and you should see the tools available after a small 
 ![](assets/setup.png)
 
 Next, ask it to set up a project like "hey pal can you set up the ~/git/mcpunk project".
-Then start asking away, like "how is the tasks database schema structured?"
+Then start asking away, like "What sorts of chunks come from Python files?"
 
 # Roaming RAG
 
@@ -122,32 +118,28 @@ someone wants to do it).
 
 # Common Usage Patterns
 
-### Answer Questions About Your Codebase & Search for Bugs
-
-(this is a genuine race condition in MCPunk but given how things are used
-it's a big "who cares 🤷")
+### Answer Questions About Your Codebase
 
 - **[User]** Hey pal can you please set up the ~/git/mcpunk repo, then help me
-  troubleshoot why I'm sometimes seeing that with multiple concurrent clients
-  the same task can be picked up twice
+  understand how a user of mcpunk would get the git diff of the currently
+  checked out branch in the repo that they have configured with mcpunk
 - **[Claude]** Call `configure_project`
-- **[Claude]** Call `list_files_by_chunk_type_and_chunk_contents` searching for `task` and `get_task` callables
-- **[Claude]** Call `list_all_chunk_names_in_file` for `db.py`
-- **[Claude]** Call `chunk_details` for `db.py:get_task`
-- **[Claude]** I see the potential issue - there's a race condition in the task
-  retrieval process. The current implementation has a Time-Of-Check to Time-Of-Use
-  (TOCTOU) vulnerability because the selection and update of the task aren't atomic....
+- **[Claude]** Call `list_all_files_in_project`
+- **[Claude]** Call `find_files_by_chunk_content`
+- **[Claude]** ... makes a total of 21 tool calls with MCPunk.
+- **[Claude]** Now I understand how the git diff functionality works in mcpunk.
+  Let me summarize how a user would get the git diff of the currently checked out branch:
+  To get a git diff of the currently checked out branch in a repo configured with mcpunk:
+
+  1. First, the user needs to configure mcpunk to work with their project by using the configure_project tool
+  2. To see what branches were recently checked out (to identify what to diff against)
+  3. Then, to get the diff between the current branch (HEAD) and a reference branch
+
+  This will display the differences between the current branch (HEAD) and the specified reference branch.
+  The ref parameter should be the name of the base branch (like "main" or "develop") that you want to compare against.
 - **[User]** Great job pal!
 
-### PR Review Split Into Tasks
-
-This demonstrates
-
-- Grab a diff between current branch and another
-- Putting tasks on a queue for other LLM chat sessions to perform
-- Running tasks from the queue
-
-.
+### PR Review
 
 - **[user]** Hey pal can you please set up the ~/git/mcpunk repo and have a
   look at the current branch versus `scratch/1.5`
@@ -168,42 +160,6 @@ This demonstrates
   - Test data only shows simple branch names, what about spaces/special chars?
   - Is example_reflog representative of real git reflog output?
   - Are we testing against actual git behavior?
-- **[User]** Can you please go ahead and add a single task for each of these items,
-  using the task tool. Each task must be totally self contained with all relevant context,
-  such that a new person could pick it up and know exactly what to do.  For example,
-  it must specify to set up the project, get the diff, and look at a specific area
-  with refrenc to the remainder of the codebase, then mark the task as done with
-  a relevant outcome note
-- **[Claude]** (adds tasks)
-  - `1.` Set up ~/git/mcpunk repo 2. Get diff between HEAD and scratch/1.5 3.
-    Review _branches_from_reflog function in mcpunk/git_analysis.py, particularly
-     the `split('to ')[-1]` logic 4. Check this against branch names containing
-     spaces or special characters 5. If issues found, validate against git's reflog documentation
-  - `1.` Set up ~/git/mcpunk repo 2. Get diff between HEAD and scratch/1.5 3.
-    Compare example_reflog test data in tests/test_git_analysis.py against actual
-    git reflog output from multiple repos 4. Verify it covers common reflog scenarios
-    (merges, rebases, checkouts) 5. Document any missing patterns
-  - `1.` Set up ~/git/mcpunk repo 2. Get diff between HEAD and scratch/1.5 3.
-    Review get_recent_branches function in mcpunk/git_analysis.py 4. Verify there
-    are integration tests that check the full function with a real git repo, not
-    just the helper 5. If missing, document test gaps
-
-Start a totally new chat:
-
-- **[User]** Hey buddy can you please grab a task and complete it
-- **[Claude]** grabs a task, sets up project, gets diff, digs around project
-- **[Claude]** discusses details
-- **[Claude]** marks task done with note:
-
-```
-Found potential issues with _branches_from_reflog function:
-1. Current implementation is brittle as it uses simple string splitting
-2. Could fail with branch names containing \"to \"
-3. May break with non-standard reflog entries
-Recommend using regex pattern matching to properly parse reflog format
-
-follow_up_criticality: medium
-```
 
 ### Work across multiple codebases
 
@@ -239,7 +195,6 @@ MCPunk is at a minimum usable state right now.
 
 **High up on the roadmap**
 
-- Improved logging, likely into the db itself
 - Possibly stemming for search
 - Change the whole "project" concept to not need files to actually exist - this
   leads to allowing "virtual" files inside the project.
@@ -253,11 +208,6 @@ MCPunk is at a minimum usable state right now.
 - Chunking of git diffs. Currently, there's a tool to fetch an entire diff. This
   might be very large. Instead, the tool could be changed to `add_diff_to_project`
   and it puts files under the `gitdiff://` URI or under some fake path
-- Database tweaks
-  - Maybe migrations. More than likely just if db version has changed make a backup
-    copy of the old one and start from scratch.
-  - If db needs stay so simple, just switch to JSON file on disk. Multithread/process
-    considerations.
 - Include module-level comments when extracting python module-level statements.
 - Caching of a project, so it doesn't need to re-parse all files every time you
   restart MCP client. This may be tricky as changes to the code in a chunker

@@ -46,7 +46,6 @@ Can add to claude like
 import logging
 import sys
 
-from mcpunk.db import init_db
 from mcpunk.dependencies import Dependencies
 from mcpunk.tools import mcp
 
@@ -97,8 +96,6 @@ logger.debug("Logging started")
 
 
 def main() -> None:
-    logger.info("Initializing database")
-    init_db()
     logger.info("Starting mcp server")
     mcp.run()
 

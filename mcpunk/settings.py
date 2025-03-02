@@ -1,4 +1,3 @@
-from datetime import timedelta
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -11,12 +10,6 @@ def _post_fiddle_path(p: Path) -> Path:
 
 
 class Settings(BaseSettings):
-    # SQLite database path
-    db_path: Annotated[
-        Path,
-        AfterValidator(_post_fiddle_path),
-    ] = Path("~/.mcpunk/db.sqlite")
-
     # I believe that MCP clients should not look at stderr, but it seems some do
     # which completely messes with things. Suggest leaving this off and relying
     # on the log *file* instead.
@@ -44,10 +37,6 @@ class Settings(BaseSettings):
     # bit larger.
     default_git_diff_response_max_chars: int = 50_000
 
-    # A task which is in the "doing" state for longer than this duration
-    # will become available again for pickup.
-    task_queue_visibility_timeout_seconds: int = 300
-
     # How long to wait between refreshing files modified on disk. This allows files
     # to queue up and be refreshed in parallel if many are modified (e.g. switching
     # branches), and it generally also avoids churn when e.g. an IDE creates temporary
@@ -58,10 +47,6 @@ class Settings(BaseSettings):
     # it will be split into multiple chunks. A chunk is something like a function,
     # or maybe a whole file (depends on the chunker).
     max_chunk_size: int = 10_000
-
-    @property
-    def task_queue_visibility_timeout(self) -> timedelta:
-        return timedelta(seconds=self.task_queue_visibility_timeout_seconds)
 
     model_config = SettingsConfigDict(
         env_prefix="MCPUNK_",

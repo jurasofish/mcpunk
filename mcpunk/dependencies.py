@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any, Union
 
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import Engine
 from sqlalchemy.orm import (
     Session,
     sessionmaker,
@@ -39,7 +39,7 @@ class DependencyState:
 class Dependencies(metaclass=Singleton):
     """Dependencies that can play nice with testing.
 
-    If you want to get settings, db session, etc. do it here. This means that in
+    If you want to get settings etc. do it here. This means that in
     tests we can patch/etc JUST this object and have everything play nice.
     """
 
@@ -53,33 +53,10 @@ class Dependencies(metaclass=Singleton):
             self._state.settings = Settings()
         return self._state.settings
 
-    def db_engine(self) -> "Engine":
-        if self._state.engine_override is not None:
-            return self._state.engine_override
-        if self._state.engine is None:
-            settings = self.settings()
-            self._state.engine = create_engine(
-                f"sqlite:///{settings.db_path}?check_same_thread=true&timeout=10&uri=true",
-            )
-        return self._state.engine
-
-    def session_maker(self) -> sessionmaker[Session]:
-        if self._state.session_maker_override is not None:
-            return self._state.session_maker_override
-        if self._state.session_maker is None:
-            self._state.session_maker = sessionmaker(
-                autocommit=False,
-                expire_on_commit=True,
-                autoflush=False,
-                bind=self.db_engine(),
-            )
-        return self._state.session_maker
-
     @contextmanager
     def override(
         self,
         settings: Union["Settings", None] = None,
-        db_engine: Engine | None = None,
         session_maker: sessionmaker[Session] | None = None,
         settings_partial: Union["Settings", None] = None,
     ) -> Generator[None, None, None]:
@@ -108,7 +85,6 @@ class Dependencies(metaclass=Singleton):
             session_maker_override=orig_state.session_maker_override,
         )
         new_state.settings_override = settings
-        new_state.engine_override = db_engine
         new_state.session_maker_override = session_maker
         self._state = new_state
 

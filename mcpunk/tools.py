@@ -17,7 +17,6 @@ from pydantic import (
 )
 from pydantic_core import to_jsonable_python
 
-from mcpunk import db
 from mcpunk.dependencies import deps
 from mcpunk.file_breakdown import (
     File,
@@ -453,93 +452,6 @@ def diff_with_ref(
     ).render()
 
 
-@mcp.tool()
-@log_inputs_outputs()
-def add_tasks(
-    tasks: Annotated[
-        list[str],
-        Field(
-            min_length=1,
-            max_length=10,
-            description="Each string in the list is an individual task.",
-        ),
-    ],
-    common_prefix: str | None = None,
-) -> ToolResponse:
-    """Add tasks to be completed by an LLM in the future.
-
-    Do not add a task unless explicitly instructed to do so.
-
-    When adding tasks, provide all required context.
-    For example: step 1 set up the ~/git/p1 and ~/git/p2 repos projects step 2 load the diff with
-        ref develop step 3 confirm that the function added in /examples/script.py is
-        consistent with the existing /examples/other_script.py file.
-    The common_prefix is prefixed to each task's action (if not None), it's provided
-    to avoid having to repeat the common context for each task.
-
-    Call this tool multiple times to add many tasks.
-    """
-    if common_prefix is not None:
-        tasks = [f"{common_prefix} {action}" for action in tasks]
-
-    with db.get_task_manager() as task_manager:
-        for task_action in tasks:
-            task_manager.add_task(task_action)
-    return MCPToolOutput(
-        text="Tasks(s) added. Do not immediately get a task unless explicitly told to do so.",
-    ).render()
-
-
-@mcp.tool()
-@log_inputs_outputs()
-def get_task() -> ToolResponse:
-    """Get a single task.
-
-    Do not use this tool unless explicitly told to do so.
-    After you complete the task, mark it as done by calling the `set_task_done` tool.
-    """
-    with db.get_task_manager() as task_manager:
-        db_task = task_manager.get_task()
-        if db_task is None:
-            return MCPToolOutput(text="no tasks").render()
-        return MCPToolOutput(
-            jsonable={
-                "action": db_task.action,
-                "id": db_task.id,
-            },
-        ).render()
-
-
-@mcp.tool()
-@log_inputs_outputs()
-def mark_task_done(
-    task_id: int,
-    outcome: str,
-    # Type hinting with `db.TaskFollowUpCriticality` directly seems to completely FRY
-    # claude desktop - seems the schema it generates perhaps causes it to generate
-    # invalid input data and crashes (?) the desktop app before it even sends any
-    # data. So reproduce it as a Literal 🐀
-    follow_up_criticality: Annotated[
-        Literal["no_followup", "low", "medium", "high"],
-        Field(description="If the task requires no follow up, set to no_followup"),
-    ],
-) -> ToolResponse:
-    """Set a task as done wth a specific outcome.
-
-    You can call this multiple times to update the outcome.
-    """
-    allowed_vals = {str(x) for x in db.TaskFollowUpCriticality.__members__.values()}
-    if follow_up_criticality not in allowed_vals:
-        raise ValueError(f"{follow_up_criticality} must be in {allowed_vals}")
-    with db.get_task_manager() as task_manager:
-        task_manager.set_task_done(
-            task_id,
-            outcome,
-            db.TaskFollowUpCriticality(follow_up_criticality),
-        )
-    return MCPToolOutput(text="ok").render()
-
-
 def _get_project_or_error(project_name: str) -> ToolProject:
     if project_name not in PROJECTS:
         raise ValueError(
@@ -585,7 +497,6 @@ def _filter_files_by_chunk(
 if __name__ == "__main__":
     import time
 
-    # mark_task_done(task_id=10, outcome="ok", follow_up_criticality="low")
     t1 = time.monotonic()
     configure_project(
         root_path=pathlib.Path("~/git/mcpunk"),

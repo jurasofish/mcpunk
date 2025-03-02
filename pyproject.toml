@@ -14,7 +14,6 @@ dependencies = [
     "more-itertools~=10.5.0",
     "mcp~=1.2.0",
     "fastmcp~=0.4.1",
-    "sqlalchemy~=2.0.36",
     "beautifulsoup4~=4.12.3",
     "uvicorn>=0.34.0,<1.0.0",
     "watchdog~=6.0.0",

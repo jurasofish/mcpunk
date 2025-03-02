@@ -372,6 +372,9 @@ def find_matching_chunks_in_file(
         (e.g. find_matching_chunks_in_file(..., ["my_funk"])
       - Finding a chunk where a specific function is defined
         (e.g. find_matching_chunks_in_file(..., ["def my_funk"])
+
+    Some chunks are split into multiple parts, because they are too large. This
+    will look like 'chunkx_part1', 'chunkx_part2', ...
     """
     proj_file = ProjectFile(project_name=project_name, rel_path=rel_path)
     return _list_chunks_in_file(proj_file, filter_, "name_or_content").render()

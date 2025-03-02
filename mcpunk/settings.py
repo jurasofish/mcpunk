@@ -36,7 +36,8 @@ class Settings(BaseSettings):
     include_chars_in_response: bool = True
     # Maximum number of characters in the response. If the response is longer than this
     # then an error will be returned to the caller. This is handy to avoid blowing
-    # your context.
+    # your context. HOWEVER this is largely redundant with the max_chunk_size
+    # option. Likely to be removed in the future.
     default_response_max_chars: int = 20_000
     # Same as `default_response_max_chars` but for the tool that returns a git diff.
     # Generally, git diffs are a bit larger than e.g. a function so nice to have it a

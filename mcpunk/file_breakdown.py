@@ -202,7 +202,7 @@ class Project:
         files_per_parallel_worker: int = 100,
         file_watch_refresh_freq_seconds: float = 0.1,
     ) -> None:
-        self.root = root
+        self.root = root.expanduser().absolute()
         self.files_per_parallel_worker = files_per_parallel_worker
         self.file_map: dict[Path, File] = {}
 
@@ -214,6 +214,8 @@ class Project:
         self.git_repo = git_repo
 
         self._init_from_root_dir(root)
+
+        # Note potential that if a file is modified here it won't be picked up.
 
         self.observer = Observer()
         self.observer.schedule(
@@ -272,7 +274,7 @@ class Project:
         else:
             # Exclude specific top-level directories
             # TODO: make this configurable
-            ignore_dirs = {".venv", "build", ".git", "__pycache__"}  # customize this set
+            ignore_dirs = {".venv", "build", ".git", "__pycache__"}
 
             for path in root.iterdir():
                 if path.is_dir() and path.name not in ignore_dirs:

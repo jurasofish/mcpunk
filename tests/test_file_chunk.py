@@ -76,6 +76,97 @@ def test_chunk_id_format() -> None:
     assert all(c in "0123456789abcdef" for c in hash_part)
 
 
+def test_chunk_matches_filter_string_on_name() -> None:
+    """Test that a string filter matches when present in chunk name."""
+    chunk = Chunk(
+        category=ChunkCategory.callable,
+        name="test_function",
+        line=1,
+        content="def test_function():\n    pass",
+    )
+
+    assert chunk.matches_filter("function", "name") is True
+    assert chunk.matches_filter("test", "name") is True
+    assert chunk.matches_filter("test_function", "name") is True
+
+
+def test_chunk_matches_filter_list_on_name() -> None:
+    """Test that a list filter matches when any element is in chunk name."""
+    chunk = Chunk(
+        category=ChunkCategory.callable,
+        name="test_function",
+        line=1,
+        content="def test_function():\n    pass",
+    )
+
+    assert chunk.matches_filter(["func", "other"], "name") is True
+    assert chunk.matches_filter(["test", "xyz"], "name") is True
+    assert chunk.matches_filter(["unrelated", "test_function"], "name") is True
+
+
+def test_chunk_matches_filter_none() -> None:
+    """Test that None filter matches all chunks."""
+    chunk = Chunk(
+        category=ChunkCategory.callable,
+        name="test_function",
+        line=1,
+        content="def test_function():\n    pass",
+    )
+
+    assert chunk.matches_filter(None, "name") is True
+    assert chunk.matches_filter(None, "content") is True
+    assert chunk.matches_filter(None, "name_or_content") is True
+
+
+def test_chunk_matches_filter_on_content() -> None:
+    """Test filtering on content."""
+    chunk = Chunk(
+        category=ChunkCategory.callable,
+        name="test_function",
+        line=1,
+        content="def test_function():\n    return 'hello world'",
+    )
+
+    assert chunk.matches_filter("hello", "content") is True
+    assert chunk.matches_filter("return", "content") is True
+    assert chunk.matches_filter(["world", "planet"], "content") is True
+    assert chunk.matches_filter("not_present", "content") is False
+
+
+def test_chunk_matches_filter_on_name_or_content() -> None:
+    """Test filtering on both name and content combined."""
+    chunk = Chunk(
+        category=ChunkCategory.callable,
+        name="example_function",
+        line=1,
+        content="def test_function():\n    return 'hello'",
+    )
+
+    # Match on name
+    assert chunk.matches_filter("example", "name_or_content") is True
+
+    # Match on content
+    assert chunk.matches_filter("hello", "name_or_content") is True
+
+    # Match on both
+    assert chunk.matches_filter("function", "name_or_content") is True
+
+
+def test_chunk_matches_filter_non_matching() -> None:
+    """Test various non-matching cases."""
+    chunk = Chunk(
+        category=ChunkCategory.callable,
+        name="test_function",
+        line=1,
+        content="def test_function():\n    pass",
+    )
+
+    assert chunk.matches_filter("missing", "name") is False
+    assert chunk.matches_filter(["absent", "not_here"], "name") is False
+    assert chunk.matches_filter("return", "content") is False
+    assert chunk.matches_filter("missing", "name_or_content") is False
+
+
 def test_chunk_split_small_chunk_not_split() -> None:
     """Test that small chunks (below max_size) aren't split."""
     chunk = Chunk(

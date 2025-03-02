@@ -306,8 +306,6 @@ def _analyze_file(file_path: Path) -> File | None:
 def split_large_chunks(chunks: list[Chunk], max_size: int = 10000) -> list[Chunk]:
     """Split any chunks larger than max_size into smaller chunks.
 
-    This function is chunker-agnostic and works with chunks from any chunker.
-
     Args:
         chunks: List of chunks to potentially split
         max_size: Maximum size in characters for any chunk
@@ -316,49 +314,46 @@ def split_large_chunks(chunks: list[Chunk], max_size: int = 10000) -> list[Chunk
         New list of chunks with large chunks split into smaller ones
     """
     result: list[Chunk] = []
+    for chunk in chunks:
+        result.extend(split_large_chunk(chunk, max_size))
+    return result
+
+
+def split_large_chunk(chunk: Chunk, max_size: int = 10000) -> list[Chunk]:
+    """Split a chunk larger than max_size into smaller chunks.
+
+    Args:
+        chunk: The chunk to potentially split
+        max_size: Maximum size in characters for the chunk
+
+    Returns:
+        List containing either the original chunk (if small enough) or multiple smaller chunks
+    """
+    # If chunk is small enough, return it as is
+    if len(chunk.content) <= max_size:
+        return [chunk]
+
+    result: list[Chunk] = []
     max_line_size = max_size - 50  # Leave some margin
 
-    for chunk in chunks:
-        # If chunk is small enough, keep it as is
-        if len(chunk.content) <= max_size:
-            result.append(chunk)
-            continue
+    # Preprocess to split long lines first
+    processed_lines = []
+    for line in chunk.content.splitlines(keepends=True):
+        if len(line) > max_line_size:
+            # Split the line into chunks of max_line_size
+            for i in range(0, len(line), max_line_size):
+                processed_lines.append(line[i : i + max_line_size])
+        else:
+            processed_lines.append(line)
 
-        # Preprocess to split long lines first
-        processed_lines = []
-        for line in chunk.content.splitlines(keepends=True):
-            if len(line) > max_line_size:
-                # Split the line into chunks of max_line_size
-                for i in range(0, len(line), max_line_size):
-                    processed_lines.append(line[i : i + max_line_size])
-            else:
-                processed_lines.append(line)
+    # Now split into chunks of max_size
+    current_content: list[str] = []
+    current_size = 0
+    part_num = 1
 
-        # Now split into chunks of max_size
-        current_content: list[str] = []
-        current_size = 0
-        part_num = 1
-
-        for line in processed_lines:
-            # If adding this line would exceed the limit, create a new chunk
-            if current_size + len(line) > max_size and current_content:
-                new_chunk = Chunk(
-                    category=chunk.category,
-                    name=f"{chunk.name}_part{part_num}",
-                    content="".join(current_content),
-                    line=None,
-                )
-                result.append(new_chunk)
-                part_num += 1
-                current_content = []
-                current_size = 0
-
-            # Add the line to the current chunk
-            current_content.append(line)
-            current_size += len(line)
-
-        # Add the final chunk if there's anything left
-        if current_content:
+    for line in processed_lines:
+        # If adding this line would exceed the limit, create a new chunk
+        if current_size + len(line) > max_size and current_content:
             new_chunk = Chunk(
                 category=chunk.category,
                 name=f"{chunk.name}_part{part_num}",
@@ -366,5 +361,22 @@ def split_large_chunks(chunks: list[Chunk], max_size: int = 10000) -> list[Chunk
                 line=None,
             )
             result.append(new_chunk)
+            part_num += 1
+            current_content = []
+            current_size = 0
+
+        # Add the line to the current chunk
+        current_content.append(line)
+        current_size += len(line)
+
+    # Add the final chunk if there's anything left
+    if current_content:
+        new_chunk = Chunk(
+            category=chunk.category,
+            name=f"{chunk.name}_part{part_num}",
+            content="".join(current_content),
+            line=None,
+        )
+        result.append(new_chunk)
 
     return result

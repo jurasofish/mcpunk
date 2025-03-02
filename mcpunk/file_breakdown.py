@@ -180,7 +180,7 @@ class File(BaseModel):
             if chunker.can_chunk(source_code, file_path):
                 try:
                     chunks = chunker(source_code, file_path).chunk_file()
-                    chunks = split_large_chunks(chunks)
+                    chunks = _split_large_chunks(chunks)
                     break
                 except Exception:
                     logger.exception(f"Error chunking file {file_path} with {chunker}")
@@ -303,7 +303,7 @@ def _analyze_file(file_path: Path) -> File | None:
         return None
 
 
-def split_large_chunks(chunks: list[Chunk], max_size: int = 10000) -> list[Chunk]:
+def _split_large_chunks(chunks: list[Chunk], max_size: int = 10000) -> list[Chunk]:
     """Split any chunks larger than max_size into smaller chunks.
 
     Args:
@@ -315,12 +315,15 @@ def split_large_chunks(chunks: list[Chunk], max_size: int = 10000) -> list[Chunk
     """
     result: list[Chunk] = []
     for chunk in chunks:
-        result.extend(split_large_chunk(chunk, max_size))
+        result.extend(_split_large_chunk(chunk, max_size))
     return result
 
 
-def split_large_chunk(chunk: Chunk, max_size: int = 10000) -> list[Chunk]:
+def _split_large_chunk(chunk: Chunk, max_size: int = 10000) -> list[Chunk]:
     """Split a chunk larger than max_size into smaller chunks.
+
+    This will split the chunk at line boundaries, unless the
+    line is already longer than max_size.
 
     Args:
         chunk: The chunk to potentially split
@@ -333,10 +336,15 @@ def split_large_chunk(chunk: Chunk, max_size: int = 10000) -> list[Chunk]:
     if len(chunk.content) <= max_size:
         return [chunk]
 
+    prefix = "[This is a subsection of the chunk. Other parts contain the rest of the chunk]\n\n"
+    max_size -= len(prefix)
+
     result: list[Chunk] = []
     max_line_size = max_size - 50  # Leave some margin
 
-    # Preprocess to split long lines first
+    # Preprocess to split long lines first. This could be avoided, but it does
+    # make the whole thing a bit simpler as we always know later on that a single line
+    # will never be longer than max_size.
     processed_lines = []
     for line in chunk.content.splitlines(keepends=True):
         if len(line) > max_line_size:
@@ -357,7 +365,7 @@ def split_large_chunk(chunk: Chunk, max_size: int = 10000) -> list[Chunk]:
             new_chunk = Chunk(
                 category=chunk.category,
                 name=f"{chunk.name}_part{part_num}",
-                content="".join(current_content),
+                content=prefix + "".join(current_content),
                 line=None,
             )
             result.append(new_chunk)
@@ -374,7 +382,7 @@ def split_large_chunk(chunk: Chunk, max_size: int = 10000) -> list[Chunk]:
         new_chunk = Chunk(
             category=chunk.category,
             name=f"{chunk.name}_part{part_num}",
-            content="".join(current_content),
+            content=prefix + "".join(current_content),
             line=None,
         )
         result.append(new_chunk)

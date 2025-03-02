@@ -4,12 +4,6 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any, Union
 
-from sqlalchemy import Engine
-from sqlalchemy.orm import (
-    Session,
-    sessionmaker,
-)
-
 __all__ = [
     "Dependencies",
     "deps",
@@ -28,12 +22,8 @@ class Singleton(type):
 @dataclass
 class DependencyState:
     settings: Union["Settings", None] = None
-    engine: Engine | None = None
-    session_maker: sessionmaker[Session] | None = None
 
     settings_override: Union["Settings", None] = None
-    engine_override: Engine | None = None
-    session_maker_override: sessionmaker[Session] | None = None
 
 
 class Dependencies(metaclass=Singleton):
@@ -57,7 +47,6 @@ class Dependencies(metaclass=Singleton):
     def override(
         self,
         settings: Union["Settings", None] = None,
-        session_maker: sessionmaker[Session] | None = None,
         settings_partial: Union["Settings", None] = None,
     ) -> Generator[None, None, None]:
         """Override dependency functions for testing."""
@@ -81,11 +70,8 @@ class Dependencies(metaclass=Singleton):
         # of override contexts managers.
         new_state = DependencyState(
             settings_override=orig_state.settings_override,
-            engine_override=orig_state.engine_override,
-            session_maker_override=orig_state.session_maker_override,
         )
         new_state.settings_override = settings
-        new_state.session_maker_override = session_maker
         self._state = new_state
 
         try:

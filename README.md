@@ -130,11 +130,9 @@ someone wants to do it).
 - **[Claude]** Now I understand how the git diff functionality works in mcpunk.
   Let me summarize how a user would get the git diff of the currently checked out branch:
   To get a git diff of the currently checked out branch in a repo configured with mcpunk:
-
   1. First, the user needs to configure mcpunk to work with their project by using the configure_project tool
   2. To see what branches were recently checked out (to identify what to diff against)
   3. Then, to get the diff between the current branch (HEAD) and a reference branch
-
   This will display the differences between the current branch (HEAD) and the specified reference branch.
   The ref parameter should be the name of the base branch (like "main" or "develop") that you want to compare against.
 - **[User]** Great job pal!

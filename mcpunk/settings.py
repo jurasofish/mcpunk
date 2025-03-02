@@ -53,6 +53,11 @@ class Settings(BaseSettings):
     # files during save (though this is not a guarantee).
     file_watch_refresh_freq_seconds: float = 0.1
 
+    # Maximum size of a chunk in characters. If a chunk is larger than this,
+    # it will be split into multiple chunks. A chunk is something like a function,
+    # or maybe a whole file (depends on the chunker).
+    max_chunk_size: int = 10_000
+
     @property
     def task_queue_visibility_timeout(self) -> timedelta:
         return timedelta(seconds=self.task_queue_visibility_timeout_seconds)

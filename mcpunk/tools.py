@@ -259,6 +259,7 @@ def configure_project(
         chunk_project=FileBreakdownProject(
             root=path,
             file_watch_refresh_freq_seconds=deps.settings().file_watch_refresh_freq_seconds,
+            max_chunk_size=deps.settings().max_chunk_size,
         ),
     )
     PROJECTS[project_name] = project

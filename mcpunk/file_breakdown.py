@@ -172,6 +172,7 @@ class File(BaseModel):
         cls,
         source_code: str,
         file_path: Path,
+        max_chunk_size: int = 10_000,
     ) -> "File":
         """Extract all callables, calls and imports from the given source code file."""
         chunks: list[Chunk] = []
@@ -181,7 +182,9 @@ class File(BaseModel):
             if chunker.can_chunk(source_code, file_path):
                 try:
                     chunks = chunker(source_code, file_path).chunk_file()
-                    chunks = list(more_itertools.flatten(x.split(max_size=10_000) for x in chunks))
+                    chunks = list(
+                        more_itertools.flatten(x.split(max_size=max_chunk_size) for x in chunks),
+                    )
                     break
                 except Exception:
                     logger.exception(f"Error chunking file {file_path} with {chunker}")
@@ -203,9 +206,11 @@ class Project:
         root: Path,
         files_per_parallel_worker: int = 100,
         file_watch_refresh_freq_seconds: float = 0.1,
+        max_chunk_size: int = 10_000,
     ) -> None:
         self.root = root.expanduser().absolute()
         self.files_per_parallel_worker = files_per_parallel_worker
+        self.max_chunk_size = max_chunk_size
         self.file_map: dict[Path, File] = {}
 
         git_repo: Repo | None
@@ -243,14 +248,21 @@ class Project:
 
         files_analysed: list[File]
         if n_workers == 1:
-            files_analysed_maybe_none = [_analyze_file(file_path) for file_path in files]
+            files_analysed_maybe_none = [
+                _analyze_file(file_path, max_chunk_size=self.max_chunk_size) for file_path in files
+            ]
             files_analysed = [x for x in files_analysed_maybe_none if x is not None]
         else:
             logger.info(f"Using {n_workers} workers to process {len(files)} files")
             files_analysed = []
             with ProcessPoolExecutor(max_workers=n_workers) as executor:
                 future_to_file = {
-                    executor.submit(_analyze_file, file_path): file_path for file_path in files
+                    executor.submit(
+                        _analyze_file,
+                        file_path,
+                        max_chunk_size=self.max_chunk_size,
+                    ): file_path
+                    for file_path in files
                 }
 
                 for future in as_completed(future_to_file):
@@ -289,7 +301,7 @@ class Project:
         self.load_files(files)
 
 
-def _analyze_file(file_path: Path) -> File | None:
+def _analyze_file(file_path: Path, max_chunk_size: int = 10_000) -> File | None:
     try:
         if not file_path.exists():
             logger.warning(f"File {file_path} does not exist")
@@ -298,7 +310,11 @@ def _analyze_file(file_path: Path) -> File | None:
             logger.warning(f"File {file_path} is not a file")
             return None
 
-        return File.from_file_contents(file_path.read_text(), file_path)
+        return File.from_file_contents(
+            file_path.read_text(),
+            file_path,
+            max_chunk_size=max_chunk_size,
+        )
     except Exception:
         logger.exception(f"Error processing file {file_path}")
         return None

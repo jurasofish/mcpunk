@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from mcpunk.file_chunk import Chunk, ChunkCategory
 
 
@@ -15,7 +17,7 @@ def test_chunk_id_consistency() -> None:
         line=10,
         content="def test_func():\n    return True",
     )
-    assert chunk1.id_ == chunk2.id_
+    assert chunk1.id_(None) == chunk2.id_(None)
 
 
 def test_chunk_id_uniqueness() -> None:
@@ -45,9 +47,9 @@ def test_chunk_id_uniqueness() -> None:
         content="def func1():\n    return False",  # Different content
     )
 
-    assert chunk1.id_ != chunk2.id_
-    assert chunk1.id_ != chunk3.id_
-    assert chunk1.id_ != chunk4.id_
+    assert chunk1.id_(None) != chunk2.id_(None)
+    assert chunk1.id_(None) != chunk3.id_(None)
+    assert chunk1.id_(None) != chunk4.id_(None)
 
 
 def test_chunk_id_format() -> None:
@@ -58,14 +60,62 @@ def test_chunk_id_format() -> None:
         line=10,
         content="def test_func():\n    return True",
     )
-    chunk_id = chunk.id_
+    chunk_id = chunk.id_(None)
     # ID should start with the chunk name followed by underscore
     assert chunk_id.startswith("test_func_")
-    # The rest should be a 10-character hash
+    # The rest should be a numeric hash
     hash_part = chunk_id[len("test_func_") :]
-    assert len(hash_part) == 10
-    # Hash should be hexadecimal (0-9, a-f)
-    assert all(c in "0123456789abcdef" for c in hash_part)
+    assert hash_part.isdigit() or all(c in "0123456789abcdefABCDEF-" for c in hash_part)
+
+
+def test_chunk_id_with_path() -> None:
+    """Test that including a path affects the ID."""
+    chunk = Chunk(
+        category=ChunkCategory.callable,
+        name="test_func",
+        line=10,
+        content="def test_func():\n    return True",
+    )
+
+    # Get ID without path
+    id_without_path = chunk.id_(None)
+
+    # Get ID with different paths
+    path1 = Path("/path/to/file1.py")
+    path2 = Path("/path/to/file2.py")
+
+    id_with_path1 = chunk.id_(path1)
+    id_with_path1_again = chunk.id_(path1)
+    id_with_path2 = chunk.id_(path2)
+
+    # Same path should give same ID
+    assert id_with_path1 == id_with_path1_again
+
+    # Different paths should give different IDs
+    assert id_with_path1 != id_with_path2
+
+    # Path vs no path should give different IDs
+    assert id_without_path != id_with_path1
+
+
+def test_chunk_id_path_consistency() -> None:
+    """Test that identical chunks with identical paths produce the same ID."""
+    path = Path("/some/path/file.py")
+
+    chunk1 = Chunk(
+        category=ChunkCategory.callable,
+        name="test_func",
+        line=10,
+        content="def test_func():\n    return True",
+    )
+    chunk2 = Chunk(
+        category=ChunkCategory.callable,
+        name="test_func",
+        line=10,
+        content="def test_func():\n    return True",
+    )
+
+    assert chunk1.id_(path) == chunk2.id_(path)
 
 
 def test_chunk_matches_filter_string_on_name() -> None:

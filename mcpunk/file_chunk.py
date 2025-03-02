@@ -1,6 +1,8 @@
 import enum
 import logging
+from functools import lru_cache
 from hashlib import sha256
+from pathlib import Path
 from typing import Literal, assert_never, get_args
 
 from pydantic import (
@@ -43,18 +45,32 @@ class Chunk(BaseModel):
     line: int | None = Field(description="Line within file where it starts. First line is 1.")
     content: str = Field(description="Content of the chunk")
 
-    @property  # Consider caching
-    def id_(self) -> str:
+    def id_(self, path: Path | None) -> str:
         """Generate a (probably) unique ID based on content, name, line, and category.
 
         This approach means that the ID will stay the same even if the chunk is recreated
         (e.g. as opposed to a totally random ID).
-        There's chance of ids being duplicated, especially across files.
         The id includes the chunk name, which makes debugging and monitoring of tool
         requests far nicer.
+
+        Incorporates an optional path argument to make the id more unique, especially
+        across files.
+
+        This does some shenanigans with caching and pre-hashing things
+        to help makes things faster.
+
+        Risk of collisions and so on, unlikely, but probably not astronomically unlikely :D
         """
-        components = [self.content, self.name, str(self.line), str(self.category)]
-        return self.name + "_" + sha256("".join(components).encode()).hexdigest()[:10]
+        # Use Python's built-in hash which is much faster than SHA256. Then clip
+        # that to a 64-bit int.
+        content_hash = str(hash(self.content) % 0xFFFFFFFFFFFFFFFF)
+        return _cached_hash(
+            content_hash=content_hash,
+            name=self.name,
+            line=self.line,
+            category=self.category,
+            path=path,
+        )
 
     def matches_filter(
         self,
@@ -154,3 +170,22 @@ class Chunk(BaseModel):
             result.append(new_chunk)
 
         return result
+
+
+@lru_cache(maxsize=100_000)
+def _cached_hash(
+    *,
+    content_hash: str,
+    name: str,
+    line: int | None,
+    category: ChunkCategory,
+    path: Path | None,
+) -> str:
+    components = [
+        content_hash,
+        name,
+        str(line),
+        str(category),
+        str(path),
+    ]
+    return name + "_" + sha256("".join(components).encode()).hexdigest()[:10]

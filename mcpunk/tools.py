@@ -24,6 +24,7 @@ from mcpunk.file_breakdown import (
 from mcpunk.file_breakdown import (
     Project as FileBreakdownProject,
 )
+from mcpunk.file_chunk import Chunk
 from mcpunk.git_analysis import get_recent_branches
 from mcpunk.util import create_file_tree, log_inputs_outputs
 
@@ -382,8 +383,6 @@ def find_matching_chunks_in_file(
 @mcp.tool()
 @log_inputs_outputs()
 def chunk_details(
-    project_name: str,
-    rel_path: Annotated[pathlib.Path, Field(description="Relative to project root")],
     chunk_id: str,
 ) -> ToolResponse:
     """Get full content of a specific chunk.
@@ -394,22 +393,21 @@ def chunk_details(
     1. Final step after find_matching_chunks_in_file finds relevant chunks
     2. Examining implementations after finding definitions/uses
     """
-    proj_file = ProjectFile(project_name=project_name, rel_path=rel_path)
-    target_file = proj_file.file
-    chunks_raw = [chunk for chunk in target_file.chunks if chunk.id_ == chunk_id]
-    chunk_contents = [inspect.cleandoc(x.content) for x in chunks_raw]
-    if len(chunk_contents) == 0:
+    # Yeah this is an awful brute force "search" - if it is even deserving of the
+    # name "search"! Ah well.
+    the_chunk: Chunk | None = None
+    for project in PROJECTS.values():
+        for file in project.chunk_project.files:
+            for chunk in file.chunks:
+                if chunk.id_(file.abs_path) == chunk_id:
+                    the_chunk = chunk
+                    break
+
+    if the_chunk is None:
         return MCPToolOutput(
             text="No matching chunks. Please use other tools to find available chunks.",
         ).render()
-    elif len(chunk_contents) == 1:
-        return MCPToolOutput(text=chunk_contents[0]).render()
-    else:
-        # Honestly should perhaps just raise here 🤷
-        resp = "WARNING MULTIPLE CHUNKS FOUND THIS IS VERY ODD"
-        for i, chunk_content in enumerate(chunk_contents):
-            resp += f"\n\n# Chunk {i + 1}{chunk_content}"
-        return MCPToolOutput(text=resp).render()
+    return MCPToolOutput(text=inspect.cleandoc(the_chunk.content)).render()
 
 
 @mcp.tool()
@@ -469,7 +467,10 @@ def _list_chunks_in_file(
 ) -> MCPToolOutput:
     target_file = proj_file.file
     chunks = [x for x in target_file.chunks if x.matches_filter(filter_, filter_on)]
-    resp_data = [f"id={x.id_} (category={x.category} chars={len(x.content)})" for x in chunks]
+    resp_data = [
+        f"id={x.id_(path=target_file.abs_path)} (category={x.category} chars={len(x.content)})"
+        for x in chunks
+    ]
     resp_text = "\n".join(resp_data)
     chunk_info = f"({len(chunks)} of {len(target_file.chunks)} chunks)"
     return MCPToolOutput(text=f"{chunk_info}\n{resp_text}")
@@ -520,11 +521,7 @@ if __name__ == "__main__":
         filter_=None,
         filter_on="name",
     )
-    chunk_details(
-        project_name="mcpunk",
-        rel_path=pathlib.Path("README.md"),
-        chunk_id="xxx",
-    )
+    chunk_details(chunk_id="xxx")
     # f = [
     #     x
     #     for x in PROJECTS["mcpunk"].chunk_project.files

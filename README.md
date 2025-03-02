@@ -174,7 +174,10 @@ In this case the LLM should recognise this via imports.
 - "Large" projects are not well tested. A project with ~1000 Python files containing
   in total ~250k LoC works well. Takes ~5s to setup the project. As codebase
   size increases, time to perform initial chunking will increase, and likely
-  more sophisticated searching will be required.
+  more sophisticated searching will be required. The code is generally not
+  written with massive codebases in mind - you will see things like all data
+  stored in memory, searching done by iterating over all data, various
+  things that are screaming out for basic optimisation.
 
 # Configuration
 

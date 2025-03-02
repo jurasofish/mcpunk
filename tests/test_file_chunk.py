@@ -1,6 +1,81 @@
 from mcpunk.file_chunk import Chunk, ChunkCategory
 
 
+def test_chunk_id_consistency() -> None:
+    """Test that identical chunks produce the same ID."""
+    chunk1 = Chunk(
+        category=ChunkCategory.callable,
+        name="test_func",
+        line=10,
+        content="def test_func():\n    return True",
+    )
+
+    chunk2 = Chunk(
+        category=ChunkCategory.callable,
+        name="test_func",
+        line=10,
+        content="def test_func():\n    return True",
+    )
+
+    assert chunk1.id_ == chunk2.id_
+
+
+def test_chunk_id_uniqueness() -> None:
+    """Test that different chunks produce different IDs."""
+    chunk1 = Chunk(
+        category=ChunkCategory.callable,
+        name="func1",
+        line=10,
+        content="def func1():\n    return True",
+    )
+
+    chunk2 = Chunk(
+        category=ChunkCategory.callable,
+        name="func2",  # Different name
+        line=10,
+        content="def func1():\n    return True",
+    )
+
+    chunk3 = Chunk(
+        category=ChunkCategory.callable,
+        name="func1",
+        line=20,  # Different line
+        content="def func1():\n    return True",
+    )
+
+    chunk4 = Chunk(
+        category=ChunkCategory.callable,
+        name="func1",
+        line=10,
+        content="def func1():\n    return False",  # Different content
+    )
+
+    assert chunk1.id_ != chunk2.id_
+    assert chunk1.id_ != chunk3.id_
+    assert chunk1.id_ != chunk4.id_
+
+
+def test_chunk_id_format() -> None:
+    """Test that the ID follows the expected format: name_hash."""
+    chunk = Chunk(
+        category=ChunkCategory.callable,
+        name="test_func",
+        line=10,
+        content="def test_func():\n    return True",
+    )
+
+    chunk_id = chunk.id_
+
+    # ID should start with the chunk name followed by underscore
+    assert chunk_id.startswith("test_func_")
+
+    # The rest should be a 10-character hash
+    hash_part = chunk_id[len("test_func_") :]
+    assert len(hash_part) == 10
+    # Hash should be hexadecimal (0-9, a-f)
+    assert all(c in "0123456789abcdef" for c in hash_part)
+
+
 def test_chunk_split_small_chunk_not_split() -> None:
     """Test that small chunks (below max_size) aren't split."""
     chunk = Chunk(

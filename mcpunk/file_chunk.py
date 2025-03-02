@@ -90,7 +90,7 @@ class Chunk(BaseModel):
         line is already longer than max_size.
 
         Args:
-            max_size: Maximum size in characters for the chunk contents.
+            max_size: Maximum size in characters for the chunk contents. At least 100.
             split_chunk_prefix: Prefix to add the start of each newly created split chunk.
                 Unused if the chunk is not split. You can set to empty string to
                 suppress the prefix.
@@ -98,6 +98,7 @@ class Chunk(BaseModel):
         Returns:
             List containing either the original chunk (if small enough) or multiple smaller chunks
         """
+        assert max_size >= 100, "max_size must be at least 100"
         # If chunk is small enough, return it as is
         if len(self.content) <= max_size:
             return [self]

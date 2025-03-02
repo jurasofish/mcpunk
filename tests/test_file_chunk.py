@@ -1,4 +1,3 @@
-import pytest
 from mcpunk.file_chunk import Chunk, ChunkCategory
 
 
@@ -8,7 +7,7 @@ def test_chunk_split_small_chunk_not_split() -> None:
         category=ChunkCategory.callable,
         name="small_func",
         line=1,
-        content="Small content that is definitely below default max_size"
+        content="Small content that is definitely below default max_size",
     )
 
     result = chunk.split()
@@ -22,16 +21,11 @@ def test_chunk_split_at_line_boundaries() -> None:
     # Create multi-line content where each line is below max_line_size
     lines = [f"Line {i}" + "x" * 50 for i in range(20)]
     content = "\n".join(lines)
-    chunk = Chunk(
-        category=ChunkCategory.callable,
-        name="multi_line_func",
-        line=1,
-        content=content
-    )
+    chunk = Chunk(category=ChunkCategory.callable, name="multi_line_func", line=1, content=content)
 
     # Choose a max_size that will require splitting but allow multiple lines per chunk
     max_size = 300
-    result = chunk.split(max_size=max_size)
+    result = chunk.split(max_size=max_size, split_chunk_prefix="blah")
 
     # Verify we have multiple chunks
     assert len(result) > 1
@@ -41,7 +35,33 @@ def test_chunk_split_at_line_boundaries() -> None:
         assert len(r.content) <= max_size, f"Chunk {chunk_idx} exceeds max_size"
 
     # Get the standard prefix length
-    prefix_len = len("[This is a subsection of the chunk. Other parts contain the rest of the chunk]\n\n")
+    prefix_len = len("blah")
+
+    # Verify splits occur at line boundaries
+    for i in range(len(result) - 1):  # Check all but the last chunk
+        chunk_content = result[i].content[prefix_len:]
+        # Each non-final chunk should end with a newline
+        assert chunk_content.endswith("\n"), f"Chunk {i} doesn't end at a line boundary"
+
+    # Verify no line is split across chunks (by checking each original line is fully in one chunk)
+    for line in lines:
+        # Count how many chunks contain this exact line (should be exactly 1)
+        line_with_newline = line + "\n"
+        found_in_chunks = 0
+        for r in result:
+            chunk_content = r.content[prefix_len:]
+            if line_with_newline in chunk_content:
+                found_in_chunks += 1
+
+        # The last line doesn't have a newline
+        if line == lines[-1]:
+            line_no_newline = line
+            for r in result:
+                chunk_content = r.content[prefix_len:]
+                if chunk_content.endswith(line_no_newline):
+                    found_in_chunks += 1
+
+        assert found_in_chunks == 1
 
     # The combined content (without prefixes) should match original content
     reconstructed = ""
@@ -53,12 +73,7 @@ def test_chunk_split_at_line_boundaries() -> None:
 def test_chunk_split_very_long_single_line() -> None:
     """Test that very long single lines are split correctly."""
     long_line = "x" * 5000  # Single line, no newlines
-    chunk = Chunk(
-        category=ChunkCategory.callable,
-        name="long_line_func",
-        line=1,
-        content=long_line
-    )
+    chunk = Chunk(category=ChunkCategory.callable, name="long_line_func", line=1, content=long_line)
 
     max_size = 1000
     result = chunk.split(max_size=max_size)
@@ -70,7 +85,9 @@ def test_chunk_split_very_long_single_line() -> None:
         assert len(r.content) <= max_size, f"Chunk {chunk_idx} exceeds max_size"
 
     # The prefix length for first and subsequent chunks
-    prefix_len = len("[This is a subsection of the chunk. Other parts contain the rest of the chunk]\n\n")
+    prefix_len = len(
+        "[This is a subsection of the chunk. Other parts contain the rest of the chunk]\n\n",
+    )
 
     # Reconstruct original content without prefixes
     reconstructed = ""
@@ -86,7 +103,7 @@ def test_chunk_split_naming_convention() -> None:
         category=ChunkCategory.callable,
         name="original_name",
         line=1,
-        content="\n".join(["x" * 100 for _ in range(10)])  # Content that will be split
+        content="\n".join(["x" * 100 for _ in range(10)]),  # Content that will be split
     )
 
     result = chunk.split(max_size=200)
@@ -109,7 +126,7 @@ def test_chunk_split_custom_prefix() -> None:
         category=ChunkCategory.callable,
         name="test_func",
         line=1,
-        content="\n".join(["x" * 100 for _ in range(10)])
+        content="\n".join(["x" * 100 for _ in range(10)]),
     )
 
     # Test with custom prefix
@@ -128,7 +145,9 @@ def test_chunk_split_custom_prefix() -> None:
     # Chunks should start with content, not the default prefix
     for chunk_idx, r in enumerate(empty_result):
         assert r.content.startswith("x"), f"Chunk {chunk_idx} doesn't start with expected content"
-        assert not r.content.startswith("[This is"), "Default prefix was used despite empty custom prefix"
+        assert not r.content.startswith(
+            "[This is",
+        ), "Default prefix was used despite empty custom prefix"
 
 
 def test_chunk_split_content_preservation() -> None:
@@ -136,12 +155,7 @@ def test_chunk_split_content_preservation() -> None:
     # Create content with distinct lines for easier verification
     lines = [f"Line {i} with unique content" for i in range(20)]
     content = "\n".join(lines)
-    chunk = Chunk(
-        category=ChunkCategory.callable,
-        name="test_func",
-        line=1,
-        content=content
-    )
+    chunk = Chunk(category=ChunkCategory.callable, name="test_func", line=1, content=content)
 
     # Use empty prefix to simplify content reconstruction
     result = chunk.split(max_size=300, split_chunk_prefix="")
@@ -159,12 +173,7 @@ def test_chunk_split_content_preservation() -> None:
 
 def test_chunk_split_empty_content() -> None:
     """Test that empty content is handled correctly."""
-    chunk = Chunk(
-        category=ChunkCategory.callable,
-        name="empty_func",
-        line=1,
-        content=""
-    )
+    chunk = Chunk(category=ChunkCategory.callable, name="empty_func", line=1, content="")
 
     result = chunk.split()
 
@@ -179,7 +188,7 @@ def test_chunk_split_exactly_at_max_size() -> None:
         category=ChunkCategory.callable,
         name="exact_size_func",
         line=1,
-        content=exact_content
+        content=exact_content,
     )
 
     result = chunk.split(max_size=1000)

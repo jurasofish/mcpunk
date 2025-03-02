@@ -1,10 +1,17 @@
+import logging
 from abc import abstractmethod
 from pathlib import Path
 
-from bs4 import BeautifulSoup
+from bs4 import (  # type: ignore[attr-defined]
+    BeautifulSoup,
+    NavigableString,
+    Tag,
+)
 
 from mcpunk.file_chunk import Chunk, ChunkCategory
 from mcpunk.python_file_analysis import Callable, extract_imports, extract_module_statements
+
+logger = logging.getLogger(__name__)
 
 
 class BaseChunker:
@@ -152,6 +159,8 @@ class VueChunker(BaseChunker):
         return str(file_path).endswith(".vue")
 
     def chunk_file(self) -> list[Chunk]:
+        chunks: list[Chunk] = []
+
         # To preserve whitespace, we wrap the source code in a <pre> tag.
         # Without this, BeautifulSoup will strip/fiddle whitespace.
         # See https://stackoverflow.com/a/33788712
@@ -159,29 +168,34 @@ class VueChunker(BaseChunker):
             "<pre>" + self.source_code + "</pre>",
             "html.parser",
         )
-        soup_within_pre = soup_with_pre.pre
-        chunks: list[Chunk] = []
+        soup_within_pre: Tag | None = soup_with_pre.pre
+        if soup_within_pre is None:
+            logger.error(f"soup_within_pre is None for {self.source_code}")
+            return chunks
 
         # Find all top-level blocks. These are typcially template, script, style,
         # plus any custom blocks.
         top_level_elements = soup_within_pre.find_all(recursive=False)
-        for element in top_level_elements:
-            chunks.append(
-                Chunk(
-                    category=ChunkCategory.other,
-                    name=element.name,
-                    content=str(element),
-                    line=element.sourceline,
-                ),
-            )
+        if top_level_elements is not None:
+            for element in top_level_elements:
+                if isinstance(element, Tag):  # Only process Tag elements
+                    chunks.append(
+                        Chunk(
+                            category=ChunkCategory.other,
+                            name=str(element.name),  # Convert to str to satisfy type checker
+                            content=str(element),
+                            line=element.sourceline,
+                        ),
+                    )
 
         # Get content not in any tag, aggressively stripping whitespace.
         # I'm not sure if it's actually valid to have content outside a <something>
         # tag but whatever doesn't hurt to grab it.
         outer_content_items: list[str] = []
         for outer_content_item in soup_within_pre.find_all(string=True, recursive=False):
-            if outer_content_item.strip():
-                outer_content_items.append(str(outer_content_item).strip())
+            if outer_content_item and isinstance(outer_content_item, NavigableString):
+                if stripped := str(outer_content_item).strip():
+                    outer_content_items.append(stripped)
         if outer_content_items:
             chunks.append(
                 Chunk(

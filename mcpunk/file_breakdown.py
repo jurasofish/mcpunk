@@ -7,6 +7,7 @@ from pathlib import Path
 from threading import Lock, Timer
 from typing import Literal
 
+import more_itertools
 from git import Repo
 from pydantic import (
     BaseModel,
@@ -180,6 +181,7 @@ class File(BaseModel):
             if chunker.can_chunk(source_code, file_path):
                 try:
                     chunks = chunker(source_code, file_path).chunk_file()
+                    chunks = list(more_itertools.flatten(x.split(max_size=10_000) for x in chunks))
                     break
                 except Exception:
                     logger.exception(f"Error chunking file {file_path} with {chunker}")

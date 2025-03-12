@@ -11,6 +11,10 @@ MCPunk lets you explore and understand codebases through conversation. It works 
 No embeddings, no complex configuration - just clear, auditable searching that you can see and guide.
 It works great with Claude Desktop, or any other [MCP](https://github.com/modelcontextprotocol) client.
 
+<a href="https://glama.ai/mcp/servers/3j9kxuocc6">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/3j9kxuocc6/badge" alt="MCPunk MCP server" />
+</a>
+
 [GitHub Repository](https://github.com/jurasofish/mcpunk)
 
 Built with the following in mind

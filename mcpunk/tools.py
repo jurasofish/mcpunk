@@ -40,7 +40,12 @@ ToolResponseSequence = Sequence[ToolResponseSingleItem]
 ToolResponse = ToolResponseSequence | ToolResponseSingleItem
 FilterType = Annotated[
     str | list[str] | None,
-    Field(description="Match if any of these strings appear. Match all if None/null."),
+    Field(
+        description=(
+            "Match if any of these strings appear. Match all if None/null. "
+            "Single empty string or empty list will match all."
+        ),
+    ),
 ]
 
 

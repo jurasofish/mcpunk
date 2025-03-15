@@ -157,3 +157,8 @@ def test_matches_filter() -> None:
     assert matches_filter(["abc", "def"], "abcdef") is True
     assert matches_filter(["xyz", "123"], "abcdef") is False
     assert matches_filter(["abc"], None) is False
+
+    # Empty string matches all
+    assert matches_filter("", "abcdef") is True
+    # Empty list matches all
+    assert matches_filter([], "abcdef") is True

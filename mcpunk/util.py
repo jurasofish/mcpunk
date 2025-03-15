@@ -135,12 +135,17 @@ def matches_filter(filter_: None | list[str] | str, data: str | None) -> bool:
 
     filter_ can be:
     - None matches all data
-    - str matches if the data contains the string
-    - list[str] matches if the data contains any of the strings in the list
+    - str matches if the data contains the string. Empty string matches all.
+    - list[str] matches if the data contains any of the strings in the list. Empty list matches all.
+
+    I find the LLM likes to use an empty list to mean "all" even though it should probably
+    use None so 🤷
 
     if data is None it never matches (unless filter_ is None)
     """
     if filter_ is None:
+        return True
+    if len(filter_) == 0:
         return True
     if data is None:
         return False

@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/jurasofish-mcpunk-badge.png)](https://mseep.ai/app/jurasofish-mcpunk)
+
 # [MCPunk 🤖](https://github.com/jurasofish/mcpunk)
 
 **Chat with your codebase without embeddings by giving the LLM tools to search your code intelligently.**

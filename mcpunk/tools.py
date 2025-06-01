@@ -357,7 +357,8 @@ def find_files_by_chunk_content(
     3. Get content:
        content = chunk_details(file, match_id)
     """
-    resp_str = _filter_files_by_chunk(project_name, chunk_contents_filter, "name_or_content")
+    project = _get_project_or_error(project_name)
+    resp_str = _filter_files_by_chunk(project, chunk_contents_filter, "name_or_content")
     return MCPToolOutput(text=resp_str).render()
 
 
@@ -484,11 +485,10 @@ def _list_chunks_in_file(
 
 
 def _filter_files_by_chunk(
-    project_name: str,
+    project: ToolProject,
     filter_: FilterType,
     filter_on: Literal["name", "name_or_content"],
 ) -> str:
-    project = _get_project_or_error(project_name)
     matching_files: set[pathlib.Path] = set()
     for file in project.chunk_project.files:
         if any(c.matches_filter(filter_, filter_on) for c in file.chunks):

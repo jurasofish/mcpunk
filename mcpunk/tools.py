@@ -384,7 +384,7 @@ def find_matching_chunks_in_file(
     will look like 'chunkx_part1', 'chunkx_part2', ...
     """
     proj_file = ProjectFile(project_name=project_name, rel_path=rel_path)
-    resp_str = _list_chunks_in_file(proj_file, filter_, "name_or_content")
+    resp_str = _list_chunks_in_file(proj_file.file, filter_, "name_or_content")
     return MCPToolOutput(text=resp_str).render()
 
 
@@ -469,11 +469,10 @@ def _get_project_or_error(project_name: str) -> ToolProject:
 
 
 def _list_chunks_in_file(
-    proj_file: ProjectFile,
+    target_file: File,
     filter_: FilterType,
     filter_on: Literal["name", "name_or_content"],
 ) -> str:
-    target_file = proj_file.file
     chunks = [x for x in target_file.chunks if x.matches_filter(filter_, filter_on)]
     resp_data = [
         f"id={x.id_(path=target_file.abs_path)} (category={x.category} chars={len(x.content)})"
@@ -521,10 +520,10 @@ if __name__ == "__main__":
         chunk_contents_filter=["desktop"],
     )
     _list_chunks_in_file(
-        proj_file=ProjectFile(
+        target_file=ProjectFile(
             project_name="mcpunk",
             rel_path=pathlib.Path("README.md"),
-        ),
+        ).file,
         filter_=None,
         filter_on="name",
     )

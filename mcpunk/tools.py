@@ -357,7 +357,8 @@ def find_files_by_chunk_content(
     3. Get content:
        content = chunk_details(file, match_id)
     """
-    return _filter_files_by_chunk(project_name, chunk_contents_filter, "name_or_content").render()
+    resp_str = _filter_files_by_chunk(project_name, chunk_contents_filter, "name_or_content")
+    return MCPToolOutput(text=resp_str).render()
 
 
 @mcp.tool()
@@ -382,7 +383,8 @@ def find_matching_chunks_in_file(
     will look like 'chunkx_part1', 'chunkx_part2', ...
     """
     proj_file = ProjectFile(project_name=project_name, rel_path=rel_path)
-    return _list_chunks_in_file(proj_file, filter_, "name_or_content").render()
+    resp_str = _list_chunks_in_file(proj_file, filter_, "name_or_content")
+    return MCPToolOutput(text=resp_str).render()
 
 
 @mcp.tool()
@@ -469,7 +471,7 @@ def _list_chunks_in_file(
     proj_file: ProjectFile,
     filter_: FilterType,
     filter_on: Literal["name", "name_or_content"],
-) -> MCPToolOutput:
+) -> str:
     target_file = proj_file.file
     chunks = [x for x in target_file.chunks if x.matches_filter(filter_, filter_on)]
     resp_data = [
@@ -478,14 +480,14 @@ def _list_chunks_in_file(
     ]
     resp_text = "\n".join(resp_data)
     chunk_info = f"({len(chunks)} of {len(target_file.chunks)} chunks)"
-    return MCPToolOutput(text=f"{chunk_info}\n{resp_text}")
+    return f"{chunk_info}\n{resp_text}"
 
 
 def _filter_files_by_chunk(
     project_name: str,
     filter_: FilterType,
     filter_on: Literal["name", "name_or_content"],
-) -> MCPToolOutput:
+) -> str:
     project = _get_project_or_error(project_name)
     matching_files: set[pathlib.Path] = set()
     for file in project.chunk_project.files:
@@ -493,9 +495,9 @@ def _filter_files_by_chunk(
             matching_files.add(file.abs_path)
     data = create_file_tree(project_root=project.root, paths=matching_files)
     if data is None:
-        return MCPToolOutput(text="No files found")
+        return "No files found"
     elif isinstance(data, str):
-        return MCPToolOutput(text=data)
+        return data
     else:
         assert_never(data)
 
